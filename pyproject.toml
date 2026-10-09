@@ -1,0 +1,30 @@
+[tool.ruff]
+line-length = 90
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "D", "UP", "B", "C4"]
+ignore = [
+    "D203",  # incompatible with D211
+    "D213",  # incompatible with D212
+    # Constructor arguments are documented in the class docstring, as the Google
+    # convention prescribes; pydocstyle cannot see that and asks for them twice.
+    "D107",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D103"]      # test names document themselves
+"notebooks/*" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+# The transformer tests need PyTorch and download a checkpoint, so they are not
+# part of the default run.  `make test-all` includes them.
+addopts = "-m 'not slow'"
+markers = [
+    "slow: requires the optional deep-learning dependencies and network access",
+]
