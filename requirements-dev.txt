@@ -1,0 +1,10 @@
+-r requirements.txt
+pytest>=7.4
+
+# Dataset download only; the pipeline itself never imports these.
+# kagglehub is the client that accepts the KGAT_ API tokens Kaggle issues
+# now; kaggle is kept as the fallback for older kaggle.json credentials.
+kagglehub>=1.0
+kaggle>=1.6
+jupyterlab>=4.0
+ruff>=0.4
