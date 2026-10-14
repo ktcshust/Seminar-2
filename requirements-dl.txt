@@ -1,0 +1,4 @@
+#   pip install -r requirements-dl.txt --index-url https://download.pytorch.org/whl/cpu
+-r requirements.txt
+torch>=2.2
+transformers>=4.40
