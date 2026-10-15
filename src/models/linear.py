@@ -20,6 +20,7 @@ from collections.abc import Callable, Sequence
 import numpy as np
 import scipy.sparse as sp
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC
 
 from src.models.base import BaseTextClassifier
 from src.preprocessing.cleaner import TextCleaner
@@ -161,5 +162,26 @@ def logistic_regression(**kwargs) -> PerLabelLinearClassifier:
         estimator_factory=lambda: LogisticRegression(
             C=4.0, solver="liblinear", class_weight="balanced", max_iter=1000
         ),
+        **kwargs,
+    )
+
+
+def nbsvm(**kwargs) -> PerLabelLinearClassifier:
+    """NB-SVM: logistic regression on NB-rescaled TF-IDF features."""
+    return PerLabelLinearClassifier(
+        name="nbsvm",
+        estimator_factory=lambda: LogisticRegression(
+            C=4.0, solver="liblinear", dual=True, max_iter=1000
+        ),
+        use_nb_features=True,
+        **kwargs,
+    )
+
+
+def linear_svm(**kwargs) -> PerLabelLinearClassifier:
+    """Linear SVM; scores are uncalibrated decision values squashed to [0, 1]."""
+    return PerLabelLinearClassifier(
+        name="linear_svm",
+        estimator_factory=lambda: LinearSVC(C=0.5, class_weight="balanced"),
         **kwargs,
     )
