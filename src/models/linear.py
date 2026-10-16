@@ -25,8 +25,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC
 
 from src.models.base import BaseTextClassifier
-from src.preprocessing.cleaner import TextCleaner
-from src.preprocessing.vectorizers import build_union_vectorizer
+from src.preprocessing.cleaner import TextCleaner, cleaning_ablation_cleaners
+from src.preprocessing.vectorizers import (
+    build_char_vectorizer,
+    build_union_vectorizer,
+    build_word_vectorizer,
+)
 
 #: Candidate regularisation strengths searched inside each training fold.
 DEFAULT_C_GRID: tuple[float, ...] = (0.25, 0.5, 1.0, 2.0, 4.0, 8.0)
@@ -329,3 +333,47 @@ def linear_svm(**kwargs) -> PerLabelLinearClassifier:
         estimator_factory=lambda: LinearSVC(C=0.5, class_weight="balanced"),
         **kwargs,
     )
+
+
+def logistic_regression_word(**kwargs) -> PerLabelLinearClassifier:
+    """Word-only TF-IDF + one-vs-rest logistic regression."""
+    return PerLabelLinearClassifier(
+        name="logreg_word",
+        estimator_factory=lambda: LogisticRegression(
+            C=4.0, solver="liblinear", class_weight="balanced", max_iter=1000
+        ),
+        vectorizer_factory=build_word_vectorizer,
+        **kwargs,
+    )
+
+
+def logistic_regression_char(**kwargs) -> PerLabelLinearClassifier:
+    """Character-only TF-IDF + one-vs-rest logistic regression."""
+    return PerLabelLinearClassifier(
+        name="logreg_char",
+        estimator_factory=lambda: LogisticRegression(
+            C=4.0, solver="liblinear", class_weight="balanced", max_iter=1000
+        ),
+        vectorizer_factory=build_char_vectorizer,
+        **kwargs,
+    )
+
+
+def feature_ablation_models(**kwargs) -> dict[str, PerLabelLinearClassifier]:
+    """Return word-only, char-only and union logistic regression classifiers."""
+    return {
+        "logreg_word": logistic_regression_word(**kwargs),
+        "logreg_char": logistic_regression_char(**kwargs),
+        "logreg": logistic_regression(**kwargs),
+    }
+
+
+def cleaning_ablation_models(**kwargs) -> dict[str, PerLabelLinearClassifier]:
+    """Return one logistic regression classifier per cleaning ablation variant."""
+    models: dict[str, PerLabelLinearClassifier] = {}
+    for variant, cleaner in cleaning_ablation_cleaners().items():
+        model = logistic_regression(cleaner=cleaner, **kwargs)
+        model.name = f"logreg_{variant}"
+        models[model.name] = model
+    return models
+

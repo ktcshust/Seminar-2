@@ -7,7 +7,14 @@ import pytest
 
 from src.config import LABEL_COLUMNS
 from src.dataio import label_matrix, texts
-from src.models import TUNED_MODELS, build_model, lightweight_models
+from src.models import (
+    ABLATION_MODELS,
+    TUNED_MODELS,
+    build_model,
+    cleaning_ablation_models,
+    feature_ablation_models,
+    lightweight_models,
+)
 
 
 # Only the fast models: the transformer has its own (slow-marked) suite.
@@ -80,6 +87,39 @@ def test_per_label_c_tuning_selects_from_grid_inside_fold(name, sample_frame):
     assert params["best_c"] == model.best_c_
 
 
+def test_feature_ablation_models_cover_word_char_and_union(sample_frame):
+    models = feature_ablation_models(label_names=LABEL_COLUMNS)
+    assert set(models) == {*ABLATION_MODELS, "logreg"}
+
+    comment_text = texts(sample_frame).tolist()
+    y = label_matrix(sample_frame)
+    for name in ABLATION_MODELS:
+        fitted = build_model(name, label_names=LABEL_COLUMNS).fit(comment_text, y)
+        scores = fitted.predict_proba(comment_text)
+        assert scores.shape == (len(comment_text), len(LABEL_COLUMNS))
+        assert np.all((scores >= 0) & (scores <= 1))
+
+
+def test_cleaning_ablation_models_fit_and_predict():
+    models = cleaning_ablation_models(label_names=LABEL_COLUMNS)
+    assert "logreg_full" in models
+    assert "logreg_none" in models
+    assert "logreg_no_normalise_leet" in models
+
+    toxic = ["you are an id!ot m0ron"] * 20
+    clean = ["thanks for the helpful edit"] * 20
+    y = np.zeros((40, 6), dtype=int)
+    y[:20, 0] = 1
+
+    for name in ("logreg_full", "logreg_none"):
+        scores = models[name].fit(toxic + clean, y).predict_proba(
+            ["you are an id!ot", "thanks for the edit"]
+        )
+        assert scores.shape == (2, 6)
+        assert scores[0, 0] > scores[1, 0]
+
+
 def test_unknown_model_name_is_reported_clearly():
     with pytest.raises(KeyError, match="Unknown model"):
         build_model("transformer_xl")
+

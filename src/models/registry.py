@@ -10,7 +10,9 @@ from src.models.dummy import KeywordClassifier, PriorClassifier
 from src.models.linear import (
     linear_svm,
     logistic_regression,
+    logistic_regression_char,
     logistic_regression_tuned,
+    logistic_regression_word,
     nbsvm,
     nbsvm_tuned,
 )
@@ -24,6 +26,8 @@ MODEL_REGISTRY: dict[str, Callable[..., BaseTextClassifier]] = {
     "linear_svm": linear_svm,
     "logreg_tuned": logistic_regression_tuned,
     "nbsvm_tuned": nbsvm_tuned,
+    "logreg_word": logistic_regression_word,
+    "logreg_char": logistic_regression_char,
 }
 
 #: Models that serve as reference points rather than as contributions.
@@ -31,6 +35,9 @@ BASELINE_MODELS = ("prior", "keyword")
 
 #: Hyper-parameter tuned variants searched inside each training fold.
 TUNED_MODELS = ("logreg_tuned", "nbsvm_tuned")
+
+#: Feature-space ablation variants comparing word-only and char-only TF-IDF.
+ABLATION_MODELS = ("logreg_word", "logreg_char")
 
 #: Models whose cost is measured in minutes rather than seconds.  Callers that
 #: sweep over "every model" -- the test suite in particular -- should iterate
@@ -80,5 +87,5 @@ def available_models() -> list[str]:
 
 def lightweight_models() -> list[str]:
     """Return the core registered models that train in seconds on CPU."""
-    excluded = {*HEAVY_MODELS, *TUNED_MODELS}
+    excluded = {*HEAVY_MODELS, *TUNED_MODELS, *ABLATION_MODELS}
     return [name for name in MODEL_REGISTRY if name not in excluded]
