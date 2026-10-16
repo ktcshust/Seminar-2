@@ -7,7 +7,7 @@ import pytest
 
 from src.config import LABEL_COLUMNS
 from src.dataio import label_matrix, texts
-from src.models import build_model, lightweight_models
+from src.models import TUNED_MODELS, build_model, lightweight_models
 
 
 # Only the fast models: the transformer has its own (slow-marked) suite.
@@ -60,6 +60,24 @@ def test_single_class_label_does_not_crash_training():
     y = np.zeros((15, 6), dtype=int)  # no positive anywhere
     model = build_model("nbsvm").fit(documents, y)
     assert model.predict_proba(documents).shape == (15, 6)
+
+
+@pytest.mark.parametrize("name", TUNED_MODELS)
+def test_per_label_c_tuning_selects_from_grid_inside_fold(name, sample_frame):
+    grid = (0.25, 1.0, 4.0)
+    comment_text = texts(sample_frame).tolist()
+    y = label_matrix(sample_frame)
+
+    model = build_model(name, c_grid=grid, label_names=LABEL_COLUMNS)
+    model.fit(comment_text, y)
+    scores = model.predict_proba(comment_text)
+
+    assert scores.shape == (len(comment_text), len(LABEL_COLUMNS))
+    assert len(model.best_c_) == len(LABEL_COLUMNS)
+    assert set(model.best_c_) <= set(grid)
+    params = model.get_params()
+    assert params["c_grid"] == list(grid)
+    assert params["best_c"] == model.best_c_
 
 
 def test_unknown_model_name_is_reported_clearly():

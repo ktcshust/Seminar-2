@@ -7,7 +7,13 @@ from collections.abc import Callable
 
 from src.models.base import BaseTextClassifier
 from src.models.dummy import KeywordClassifier, PriorClassifier
-from src.models.linear import linear_svm, logistic_regression, nbsvm
+from src.models.linear import (
+    linear_svm,
+    logistic_regression,
+    logistic_regression_tuned,
+    nbsvm,
+    nbsvm_tuned,
+)
 
 #: Every model the CLI can run, cheapest first.
 MODEL_REGISTRY: dict[str, Callable[..., BaseTextClassifier]] = {
@@ -16,10 +22,15 @@ MODEL_REGISTRY: dict[str, Callable[..., BaseTextClassifier]] = {
     "logreg": logistic_regression,
     "nbsvm": nbsvm,
     "linear_svm": linear_svm,
+    "logreg_tuned": logistic_regression_tuned,
+    "nbsvm_tuned": nbsvm_tuned,
 }
 
 #: Models that serve as reference points rather than as contributions.
 BASELINE_MODELS = ("prior", "keyword")
+
+#: Hyper-parameter tuned variants searched inside each training fold.
+TUNED_MODELS = ("logreg_tuned", "nbsvm_tuned")
 
 #: Models whose cost is measured in minutes rather than seconds.  Callers that
 #: sweep over "every model" -- the test suite in particular -- should iterate
@@ -68,5 +79,6 @@ def available_models() -> list[str]:
 
 
 def lightweight_models() -> list[str]:
-    """Return the registered models that train in seconds on CPU."""
-    return [name for name in MODEL_REGISTRY if name not in HEAVY_MODELS]
+    """Return the core registered models that train in seconds on CPU."""
+    excluded = {*HEAVY_MODELS, *TUNED_MODELS}
+    return [name for name in MODEL_REGISTRY if name not in excluded]
