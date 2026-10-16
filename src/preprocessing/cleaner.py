@@ -120,3 +120,30 @@ class TextCleaner(BaseEstimator, TransformerMixin):
     def transform(self, X):  # noqa: N803 - sklearn signature
         """Return the cleaned version of every element of ``X``."""
         return [self.clean(document) for document in X]
+
+
+#: Ordered names of the independent boolean flags on :class:`TextCleaner`.
+CLEANING_STEPS: tuple[str, ...] = (
+    "lowercase",
+    "strip_urls",
+    "strip_wiki_markup",
+    "expand_contractions",
+    "normalise_leet",
+    "collapse_repeats",
+    "strip_punctuation",
+)
+
+
+def cleaning_ablation_cleaners() -> dict[str, TextCleaner]:
+    """Return cleaners for the leave-one-out preprocessing ablation study.
+
+    Includes ``"full"`` (all steps enabled), ``"no_<step>"`` with one flag
+    disabled at a time for every step in :data:`CLEANING_STEPS`, and ``"none"``
+    with all steps disabled.
+    """
+    cleaners: dict[str, TextCleaner] = {"full": TextCleaner()}
+    for step in CLEANING_STEPS:
+        cleaners[f"no_{step}"] = TextCleaner(**{step: False})
+    cleaners["none"] = TextCleaner(**dict.fromkeys(CLEANING_STEPS, False))
+    return cleaners
+

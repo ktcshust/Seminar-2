@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import pytest
 
-from src.preprocessing import TextCleaner, build_union_vectorizer
+from src.preprocessing import (
+    CLEANING_STEPS,
+    TextCleaner,
+    build_char_vectorizer,
+    build_union_vectorizer,
+    build_word_vectorizer,
+    cleaning_ablation_cleaners,
+)
 
 
 @pytest.fixture
@@ -66,6 +73,32 @@ def test_flags_can_be_switched_off():
     assert keep_everything.clean("HELLO, World!") == "HELLO, World!"
 
 
+def test_cleaning_ablation_cleaners_covers_every_flag():
+    cleaners = cleaning_ablation_cleaners()
+    expected = {"full", "none"} | {f"no_{step}" for step in CLEANING_STEPS}
+    assert set(cleaners) == expected
+
+    for step in CLEANING_STEPS:
+        assert getattr(cleaners["full"], step) is True
+        assert getattr(cleaners["none"], step) is False
+        variant = cleaners[f"no_{step}"]
+        assert getattr(variant, step) is False
+        for other in CLEANING_STEPS:
+            if other != step:
+                assert getattr(variant, other) is True
+
+
+def test_each_ablation_flag_isolates_its_normalisation_step():
+    cleaners = cleaning_ablation_cleaners()
+    assert cleaners["no_lowercase"].clean("HELLO") == "hello".upper()
+    assert "example" in cleaners["no_strip_urls"].clean("https://example.com")
+    assert "user" in cleaners["no_strip_wiki_markup"].clean("[[User:Alice]]")
+    assert "can't" in cleaners["no_expand_contractions"].clean("you can't")
+    assert "b1tch" in cleaners["no_normalise_leet"].clean("b1tch")
+    assert "stuuuuupid" in cleaners["no_collapse_repeats"].clean("stuuuuupid")
+    assert "?" in cleaners["no_strip_punctuation"].clean("why?")
+
+
 def test_vectorizer_produces_word_and_char_features():
     documents = [
         "you are an idiot",
@@ -73,8 +106,17 @@ def test_vectorizer_produces_word_and_char_features():
         "thanks for the helpful edit",
         "thanks for the edit",
     ]
+    word_matrix = build_word_vectorizer(max_features=100, min_df=1).fit_transform(
+        documents
+    )
+    char_matrix = build_char_vectorizer(max_features=100, min_df=1).fit_transform(
+        documents
+    )
     matrix = build_union_vectorizer(word_features=100, char_features=100).fit_transform(
         documents
     )
+    assert word_matrix.shape[0] == len(documents)
+    assert char_matrix.shape[0] == len(documents)
     assert matrix.shape[0] == len(documents)
-    assert matrix.shape[1] > 0
+    assert matrix.shape[1] > word_matrix.shape[1]
+
