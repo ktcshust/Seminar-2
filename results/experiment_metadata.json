@@ -1,0 +1,29 @@
+{
+  "best_model": "logreg",
+  "fold_strategy": "iterative",
+  "libraries": {
+    "joblib": "1.6.0",
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "scipy": "1.18.1",
+    "sklearn": "1.9.1"
+  },
+  "models": [
+    "prior",
+    "keyword",
+    "logreg",
+    "nbsvm",
+    "linear_svm"
+  ],
+  "n_comments": 159571,
+  "n_folds": 5,
+  "persistence_backend": "file",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "processor": "Intel64 Family 6 Model 141 Stepping 1, GenuineIntel",
+  "python": "3.14.0",
+  "real_dataset": true,
+  "sample": null,
+  "seed": 42,
+  "thresholds_tuned": true,
+  "timestamp": "2026-10-26T06:35:54+00:00"
+}

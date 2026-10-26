@@ -1,0 +1,48 @@
+{
+  "bonferroni_alpha": 0.005,
+  "metric": "mean_column_auc",
+  "models": [
+    "prior",
+    "keyword",
+    "logreg",
+    "nbsvm",
+    "linear_svm"
+  ],
+  "p_values": {
+    "keyword": {
+      "keyword": 1.0,
+      "linear_svm": 0.0625,
+      "logreg": 0.0625,
+      "nbsvm": 0.0625,
+      "prior": 0.0625
+    },
+    "linear_svm": {
+      "keyword": 0.0625,
+      "linear_svm": 1.0,
+      "logreg": 0.0625,
+      "nbsvm": 0.0625,
+      "prior": 0.0625
+    },
+    "logreg": {
+      "keyword": 0.0625,
+      "linear_svm": 0.0625,
+      "logreg": 1.0,
+      "nbsvm": 0.0625,
+      "prior": 0.0625
+    },
+    "nbsvm": {
+      "keyword": 0.0625,
+      "linear_svm": 0.0625,
+      "logreg": 0.0625,
+      "nbsvm": 1.0,
+      "prior": 0.0625
+    },
+    "prior": {
+      "keyword": 0.0625,
+      "linear_svm": 0.0625,
+      "logreg": 0.0625,
+      "nbsvm": 0.0625,
+      "prior": 1.0
+    }
+  }
+}

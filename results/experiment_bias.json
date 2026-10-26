@@ -1,0 +1,101 @@
+[
+  {
+    "background_fpr": 0.018522767568469576,
+    "fpr_ratio": 10.464559272929318,
+    "n_comments": 1002,
+    "positive_rate": 0.5469061876247505,
+    "subgroup_auc": 0.9418027910865301,
+    "subgroup_fpr": 0.19383259911894274,
+    "term": "gay"
+  },
+  {
+    "background_fpr": 0.019033157215958732,
+    "fpr_ratio": 6.686895181321409,
+    "n_comments": 79,
+    "positive_rate": 0.3037974683544304,
+    "subgroup_auc": 0.9128787878787878,
+    "subgroup_fpr": 0.12727272727272726,
+    "term": "lesbian"
+  },
+  {
+    "background_fpr": 0.018783348135301647,
+    "fpr_ratio": 2.749413582512698,
+    "n_comments": 1458,
+    "positive_rate": 0.12345679012345678,
+    "subgroup_auc": 0.9236871848374196,
+    "subgroup_fpr": 0.051643192488262914,
+    "term": "black"
+  },
+  {
+    "background_fpr": 0.018970528921711798,
+    "fpr_ratio": 2.66341102021917,
+    "n_comments": 543,
+    "positive_rate": 0.1252302025782689,
+    "subgroup_auc": 0.9510835913312694,
+    "subgroup_fpr": 0.05052631578947368,
+    "term": "woman"
+  },
+  {
+    "background_fpr": 0.018874128173378944,
+    "fpr_ratio": 2.151172408411689,
+    "n_comments": 1512,
+    "positive_rate": 0.12037037037037036,
+    "subgroup_auc": 0.9507642733206644,
+    "subgroup_fpr": 0.0406015037593985,
+    "term": "white"
+  },
+  {
+    "background_fpr": 0.019070792779302886,
+    "fpr_ratio": 2.097448200654308,
+    "n_comments": 31,
+    "positive_rate": 0.1935483870967742,
+    "subgroup_auc": 0.9533333333333334,
+    "subgroup_fpr": 0.04,
+    "term": "transgender"
+  },
+  {
+    "background_fpr": 0.01902459022088814,
+    "fpr_ratio": 2.0555578226573243,
+    "n_comments": 396,
+    "positive_rate": 0.09595959595959595,
+    "subgroup_auc": 0.9567774184063511,
+    "subgroup_fpr": 0.03910614525139665,
+    "term": "female"
+  },
+  {
+    "background_fpr": 0.018999331401827503,
+    "fpr_ratio": 1.8228028081400514,
+    "n_comments": 763,
+    "positive_rate": 0.09174311926605505,
+    "subgroup_auc": 0.9459905174190888,
+    "subgroup_fpr": 0.03463203463203463,
+    "term": "jewish"
+  },
+  {
+    "background_fpr": 0.019002722632667415,
+    "fpr_ratio": 1.8173466614287426,
+    "n_comments": 744,
+    "positive_rate": 0.10483870967741936,
+    "subgroup_auc": 0.9371968121968122,
+    "subgroup_fpr": 0.03453453453453453,
+    "term": "muslim"
+  },
+  {
+    "background_fpr": 0.01906591577428841,
+    "fpr_ratio": 1.6919231626749902,
+    "n_comments": 104,
+    "positive_rate": 0.10576923076923077,
+    "subgroup_auc": 0.9374389051808407,
+    "subgroup_fpr": 0.03225806451612903,
+    "term": "immigrant"
+  },
+  {
+    "background_fpr": 0.01900391811762734,
+    "fpr_ratio": 1.4883599980685502,
+    "n_comments": 1175,
+    "positive_rate": 0.06723404255319149,
+    "subgroup_auc": 0.9544950568234315,
+    "subgroup_fpr": 0.028284671532846715,
+    "term": "christian"
+  }
+]
