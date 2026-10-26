@@ -34,6 +34,11 @@ The linear models and DistilBERT were run separately (CPU and GPU) on the same
 folds and merged with `scripts/merge_runs.py`; DistilBERT wins on all five
 folds.
 
+On the scored part of Kaggle's official test set (63,978 comments,
+`scripts/evaluate_test_set.py`) the linear models keep their ranking but score
+about 0.005 lower: logreg 0.9784, nbsvm 0.9781, linear_svm 0.9746.
+DistilBERT was not re-trained for the test set.
+
 Key findings:
 
 * Every learned model beats the keyword baseline by 0.20 AUC, yet the rare
@@ -69,6 +74,7 @@ scripts/
 notebooks/             exploratory analysis, model comparison, error and bias analysis
 results/               stored experiment artifacts (JSON + joblib)
 report/                LaTeX report, generated tables and figures
+slides/                Beamer presentation in the HUST style (latexmk -pdf main.tex)
 tests/                 pytest suite
 ```
 

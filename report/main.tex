@@ -373,9 +373,10 @@ rescaling brings no gain.
 
 \emph{All learned models are close to the competition's best.}  The winning
 private-leaderboard score was about 0.988, obtained with large ensembles of
-deep models.  A single logistic regression comes within 0.005 of it, and a
-single DistilBERT matches it in cross validation (the two numbers come from
-different test protocols and are only indicative).
+deep models.  In cross validation a single logistic regression comes within
+0.005 of it and a single DistilBERT matches it, but cross validation is
+optimistic: on the official test set the logistic regression scores 0.9784
+(Section~\ref{sec:testset}).
 
 \subsection{Per-label results}
 \label{sec:perlabel}
@@ -436,6 +437,34 @@ same imbalance, and one of them is necessary.
   \caption{F1 as a function of the decision threshold, out-of-fold scores.}
   \label{fig:sweep}
 \end{figure}
+
+\subsection{Official test set}
+\label{sec:testset}
+
+Cross validation compares models with each other; it does not say how a model
+would have fared in the competition.  For that we scored the models once on
+the 63,978 test comments that Kaggle labelled after the competition closed
+(\texttt{scripts/evaluate\_test\_set.py}).  Each model is trained as in one
+fold: fitted on 85\% of the full training set, with its thresholds tuned on
+the remaining 15\%.  The transformer was not re-trained for this experiment,
+since that needs another GPU run.
+
+\begin{table}[H]
+  \centering
+  \caption{Results on the scored part of the official test set.}
+  \label{tab:testset}
+  \input{tables/test_set.tex}
+\end{table}
+
+The ranking of the models is the same as in cross validation, but every
+learned model scores lower: logreg reaches 0.9784 AUC on the test set against
+0.9841 in cross validation, and the other linear models lose about 0.005 as
+well.  Macro F1 drops more (0.641 to 0.576 for logreg), because thresholds
+tuned on training data transfer imperfectly to the test comments.  Cross
+validation on the training set is thus optimistic for this task, and the gap
+between our best linear model and the winning private-leaderboard score
+(about 0.988) is 0.010 rather than the 0.005 that the cross-validated number
+suggests.
 
 \subsection{Statistical significance}
 
