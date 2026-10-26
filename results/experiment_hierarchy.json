@@ -1,32 +1,32 @@
 [
   {
     "label": "severe_toxic",
-    "predicted_positive": 2503,
-    "violation_rate": 0.0015980823012385138,
-    "without_parent": 4
+    "predicted_positive": 2330,
+    "violation_rate": 0.0,
+    "without_parent": 0
   },
   {
     "label": "obscene",
-    "predicted_positive": 8929,
-    "violation_rate": 0.02598275282786426,
-    "without_parent": 232
+    "predicted_positive": 8498,
+    "violation_rate": 0.0015297717109908214,
+    "without_parent": 13
   },
   {
     "label": "threat",
-    "predicted_positive": 551,
-    "violation_rate": 0.06896551724137931,
-    "without_parent": 38
+    "predicted_positive": 525,
+    "violation_rate": 0.0038095238095238095,
+    "without_parent": 2
   },
   {
     "label": "insult",
-    "predicted_positive": 7912,
-    "violation_rate": 0.012765419615773509,
-    "without_parent": 101
+    "predicted_positive": 8724,
+    "violation_rate": 0.0,
+    "without_parent": 0
   },
   {
     "label": "identity_hate",
-    "predicted_positive": 1542,
-    "violation_rate": 0.07263294422827497,
-    "without_parent": 112
+    "predicted_positive": 1524,
+    "violation_rate": 0.0026246719160104987,
+    "without_parent": 4
   }
 ]

@@ -1,5 +1,23 @@
 [
   {
+    "fit_seconds_mean": 2238.422825160017,
+    "hamming_loss_mean": 0.015991838122921827,
+    "hamming_loss_std": 0.0004177932945785495,
+    "macro_f1_mean": 0.6827486637248928,
+    "macro_f1_std": 0.007524576502714576,
+    "mean_column_auc_mean": 0.9898463754412269,
+    "mean_column_auc_std": 0.0010624985645397,
+    "mean_column_pr_auc_mean": 0.719302390186003,
+    "mean_column_pr_auc_std": 0.011960678563731323,
+    "micro_f1_mean": 0.7869632565088358,
+    "micro_f1_std": 0.0046437173778980274,
+    "model": "distilbert",
+    "subset_accuracy_mean": 0.9246792855909923,
+    "subset_accuracy_std": 0.002030862457699304,
+    "weighted_f1_mean": 0.7904817487843641,
+    "weighted_f1_std": 0.004072859338521048
+  },
+  {
     "fit_seconds_mean": 232.00202366001903,
     "hamming_loss_mean": 0.01823848401158195,
     "hamming_loss_std": 0.0002713957479792228,

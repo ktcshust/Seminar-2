@@ -1,0 +1,267 @@
+{
+  "fit_seconds": [
+    0.0007137999637052417,
+    0.0006651000585407019,
+    0.0008559999987483025,
+    0.0006326999282464385,
+    0.0006770999170839787
+  ],
+  "fold_metrics": [
+    {
+      "hamming_loss": 0.63375,
+      "macro_f1": 0.06531772534392886,
+      "mean_column_auc": 0.5,
+      "mean_column_pr_auc": 0.03691666666666667,
+      "micro_f1": 0.09925381973232264,
+      "subset_accuracy": 0.00575,
+      "weighted_f1": 0.12231895230892482
+    },
+    {
+      "hamming_loss": 0.6337916666666666,
+      "macro_f1": 0.06523609463334536,
+      "mean_column_auc": 0.5,
+      "mean_column_pr_auc": 0.036875000000000005,
+      "micro_f1": 0.09914124962984898,
+      "subset_accuracy": 0.00675,
+      "weighted_f1": 0.12241099299402414
+    },
+    {
+      "hamming_loss": 0.63375,
+      "macro_f1": 0.06530548460666075,
+      "mean_column_auc": 0.5,
+      "mean_column_pr_auc": 0.03691666666666667,
+      "micro_f1": 0.09925381973232264,
+      "subset_accuracy": 0.00725,
+      "weighted_f1": 0.12265052984214668
+    },
+    {
+      "hamming_loss": 0.63375,
+      "macro_f1": 0.06531772534392886,
+      "mean_column_auc": 0.5,
+      "mean_column_pr_auc": 0.03691666666666667,
+      "micro_f1": 0.09925381973232264,
+      "subset_accuracy": 0.0065,
+      "weighted_f1": 0.12231895230892482
+    },
+    {
+      "hamming_loss": 0.63375,
+      "macro_f1": 0.06530548460666075,
+      "mean_column_auc": 0.5,
+      "mean_column_pr_auc": 0.03691666666666667,
+      "micro_f1": 0.09925381973232264,
+      "subset_accuracy": 0.007,
+      "weighted_f1": 0.12265052984214668
+    }
+  ],
+  "label_names": [
+    "toxic",
+    "severe_toxic",
+    "obscene",
+    "threat",
+    "insult",
+    "identity_hate"
+  ],
+  "label_summary": {
+    "f1": {
+      "identity_hate": 0.0,
+      "insult": 0.09614469300333174,
+      "obscene": 0.10021372595582997,
+      "severe_toxic": 0.020487920634378372,
+      "threat": 0.0,
+      "toxic": 0.1749326778478894
+    },
+    "positive_rate": {
+      "identity_hate": 0.00925,
+      "insult": 0.0505,
+      "obscene": 0.05275,
+      "severe_toxic": 0.010350000000000002,
+      "threat": 0.00275,
+      "toxic": 0.09585
+    },
+    "pr_auc": {
+      "identity_hate": 0.00925,
+      "insult": 0.0505,
+      "obscene": 0.05275,
+      "severe_toxic": 0.010350000000000002,
+      "threat": 0.00275,
+      "toxic": 0.09585
+    },
+    "precision": {
+      "identity_hate": 0.0,
+      "insult": 0.0505,
+      "obscene": 0.05275,
+      "severe_toxic": 0.010350000000000002,
+      "threat": 0.0,
+      "toxic": 0.09585
+    },
+    "recall": {
+      "identity_hate": 0.0,
+      "insult": 1.0,
+      "obscene": 1.0,
+      "severe_toxic": 1.0,
+      "threat": 0.0,
+      "toxic": 1.0
+    },
+    "roc_auc": {
+      "identity_hate": 0.5,
+      "insult": 0.5,
+      "obscene": 0.5,
+      "severe_toxic": 0.5,
+      "threat": 0.5,
+      "toxic": 0.5
+    },
+    "support": {
+      "identity_hate": 37.0,
+      "insult": 202.0,
+      "obscene": 211.0,
+      "severe_toxic": 41.4,
+      "threat": 11.0,
+      "toxic": 383.4
+    },
+    "threshold": {
+      "identity_hate": 0.01,
+      "insult": 0.01,
+      "obscene": 0.01,
+      "severe_toxic": 0.01,
+      "threat": 0.01,
+      "toxic": 0.01
+    }
+  },
+  "label_summary_at_half": {
+    "f1": {
+      "identity_hate": 0.0,
+      "insult": 0.0,
+      "obscene": 0.0,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 0.0
+    },
+    "positive_rate": {
+      "identity_hate": 0.00925,
+      "insult": 0.0505,
+      "obscene": 0.05275,
+      "severe_toxic": 0.010350000000000002,
+      "threat": 0.00275,
+      "toxic": 0.09585
+    },
+    "pr_auc": {
+      "identity_hate": 0.00925,
+      "insult": 0.0505,
+      "obscene": 0.05275,
+      "severe_toxic": 0.010350000000000002,
+      "threat": 0.00275,
+      "toxic": 0.09585
+    },
+    "precision": {
+      "identity_hate": 0.0,
+      "insult": 0.0,
+      "obscene": 0.0,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 0.0
+    },
+    "recall": {
+      "identity_hate": 0.0,
+      "insult": 0.0,
+      "obscene": 0.0,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 0.0
+    },
+    "roc_auc": {
+      "identity_hate": 0.5,
+      "insult": 0.5,
+      "obscene": 0.5,
+      "severe_toxic": 0.5,
+      "threat": 0.5,
+      "toxic": 0.5
+    },
+    "support": {
+      "identity_hate": 37.0,
+      "insult": 202.0,
+      "obscene": 211.0,
+      "severe_toxic": 41.4,
+      "threat": 11.0,
+      "toxic": 383.4
+    },
+    "threshold": {
+      "identity_hate": 0.5,
+      "insult": 0.5,
+      "obscene": 0.5,
+      "severe_toxic": 0.5,
+      "threat": 0.5,
+      "toxic": 0.5
+    }
+  },
+  "model_name": "prior",
+  "n_splits": 5,
+  "strategy": "iterative",
+  "summary": {
+    "fit_seconds_mean": 0.0007089399732649326,
+    "hamming_loss_mean": 0.6337583333333334,
+    "hamming_loss_std": 1.863389981247137e-05,
+    "macro_f1_mean": 0.06529650290690492,
+    "macro_f1_std": 3.431940064280423e-05,
+    "mean_column_auc_mean": 0.5,
+    "mean_column_auc_std": 0.0,
+    "mean_column_pr_auc_mean": 0.036908333333333335,
+    "mean_column_pr_auc_std": 1.8633899812496194e-05,
+    "micro_f1_mean": 0.0992313057118279,
+    "micro_f1_std": 5.0342880273044575e-05,
+    "subset_accuracy_mean": 0.0066500000000000005,
+    "subset_accuracy_std": 0.0005755432216610671,
+    "weighted_f1_mean": 0.12246999145923343,
+    "weighted_f1_std": 0.0001690374841261588
+  },
+  "summary_at_half": {
+    "hamming_loss_mean": 0.036908333333333335,
+    "macro_f1_mean": 0.0,
+    "mean_column_auc_mean": 0.5,
+    "mean_column_pr_auc_mean": 0.036908333333333335,
+    "micro_f1_mean": 0.0,
+    "subset_accuracy_mean": 0.8983000000000001,
+    "weighted_f1_mean": 0.0
+  },
+  "thresholds": [
+    [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ],
+    [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ],
+    [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ],
+    [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ],
+    [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ]
+  ]
+}

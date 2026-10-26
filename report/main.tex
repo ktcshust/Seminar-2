@@ -1,0 +1,666 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{caption}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+
+\graphicspath{{figures/}}
+
+% Every number quoted in running text comes from here, so prose and tables
+% cannot disagree.  Regenerate with scripts/make_report_assets.py.
+\input{generated_macros.tex}
+
+\title{Toxic Comment Classification\\[0.3em]
+  \large Seminar project, topic 3: multi-label classification of the Jigsaw corpus}
+\author{Group members: \textit{(names and student IDs)}\\[0.3em]
+  \small Course teacher: Assoc.\ Prof.\ Phuong T.\ Nguyen, University of L'Aquila}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We study the Jigsaw Toxic Comment Classification Challenge, a multi-label task
+in which each of \NComments{} Wikipedia talk-page comments may carry any subset
+of six labels: \emph{toxic}, \emph{severe\_toxic}, \emph{obscene},
+\emph{threat}, \emph{insult} and \emph{identity\_hate}.  We compare two trivial
+baselines, three linear classifiers over word and character TF-IDF features and
+a fine-tuned DistilBERT under \NFolds-fold multi-label stratified cross
+validation, with per-label decision thresholds tuned inside each training fold.
+The best model, \BestModel, reaches a mean column-wise ROC-AUC of
+\BestAUC{}~$\pm$~\BestAUCStd, ahead of the best linear model, \RunnerUpModel{}
+(\RunnerUpAUC), and far ahead of a profanity-list baseline (0.78).  The
+aggregate hides two weaknesses: the rarest labels remain hard (PR-AUC between
+0.50 and 0.61 for \emph{severe\_toxic}, \emph{threat} and
+\emph{identity\_hate}), and both model families are biased against identity
+terms -- a clean comment mentioning \emph{gay} is flagged as toxic 6.8 times as
+often as the average clean comment by DistilBERT, and 10.5 times by logistic
+regression.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =========================================================================== %
+\section{Introduction}
+% =========================================================================== %
+
+Online platforms rely on automatic moderation to keep discussions civil, and
+the first step of any such system is a classifier that recognises abusive
+language.  The Jigsaw Toxic Comment Classification Challenge, hosted on Kaggle
+by Jigsaw and Google in 2018, frames this as a \emph{multi-label} problem: a
+comment is not merely toxic or clean, it can be at once obscene, insulting and
+hateful towards an identity group.
+
+The project brief asks us to implement machine learning or deep learning
+classifiers, evaluate them with suitable metrics under $k$-fold cross
+validation, compare them with dedicated baselines, and analyse the results.
+Our contributions are:
+
+\begin{itemize}
+  \item a reproducible pipeline in Python that cross-validates every model on
+        one shared fold assignment, so that models can be compared pairwise;
+  \item a comparison of six models, from a constant predictor to a fine-tuned
+        transformer, with the competition's metric and with metrics that
+        expose the rare labels;
+  \item an analysis of what the best model gets wrong: an error taxonomy built
+        from concrete examples, violations of the label hierarchy, and an audit
+        of unintended bias against identity terms.
+\end{itemize}
+
+% =========================================================================== %
+\section{Dataset}
+% =========================================================================== %
+
+The training set contains \NComments{} comments, each with six binary labels.
+The competition's test set is labelled only partially and only after the
+competition closed (63,978 of 153,164 rows are usable), so, as the brief
+requires, we evaluate exclusively by cross validation on the training set.
+
+\subsection{Label frequency}
+
+The labels are rare and severely imbalanced (Figure~\ref{fig:freq}): 89.8\% of
+the comments carry no label at all, \emph{toxic} occurs in 9.6\% of the
+comments, and \emph{threat} in only 0.3\% -- 478 comments in the whole corpus,
+about 96 per validation fold.  Accuracy is therefore meaningless: the
+constant ``clean'' prediction is right on nine comments out of ten.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\linewidth]{label_frequency}
+  \caption{Number of positive comments per label.}
+  \label{fig:freq}
+\end{figure}
+
+\subsection{Label co-occurrence and hierarchy}
+
+The labels are strongly correlated (Figure~\ref{fig:cooc}).  \emph{severe\_toxic}
+is a strict subset of \emph{toxic}: $P(\text{toxic} \mid \text{severe\_toxic}) =
+1$.  The other four labels co-occur with \emph{toxic} in 93--94\% of cases but
+not always (for instance 523 obscene comments are not labelled toxic).  A
+binary-relevance model, which trains each label independently, ignores this
+structure; Section~\ref{sec:hierarchy} measures what that costs.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\linewidth]{label_cooccurrence}
+  \caption{Conditional co-occurrence $P(\text{column} \mid \text{row})$.}
+  \label{fig:cooc}
+\end{figure}
+
+\subsection{Comment length}
+
+Comments are long-tailed (Figure~\ref{fig:length}): the median comment has 36
+words, the 95th percentile 230 and the longest 1,411.  This informs the
+transformer's maximum sequence length of 192 sub-word tokens, which keeps most
+comments whole.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{comment_length}
+  \caption{Distribution of comment length, and length by toxicity.}
+  \label{fig:length}
+\end{figure}
+
+% =========================================================================== %
+\section{Methodology}
+% =========================================================================== %
+
+\subsection{Preprocessing}
+
+The comments are raw wiki markup written by anonymous editors.  A configurable
+cleaner, implemented as a scikit-learn transformer so that it runs inside each
+fold, applies in order: removal of user signatures and escaped newlines;
+replacement of URLs and IP addresses with placeholder tokens; lower-casing;
+expansion of English contractions; reversal of common obfuscations
+(\texttt{sh!t}, \texttt{b1tch}), where digits are rewritten only inside tokens
+that also contain letters so that numbers survive; removal of punctuation; and
+collapsing of character runs longer than two (\texttt{stuuuupid} $\to$
+\texttt{stuupid}), which keeps the emphasis signal.  The transformer receives
+the raw text, since its sub-word tokenizer handles casing and punctuation
+itself.
+
+\subsection{Models}
+
+All models output a score in $[0,1]$ for each of the six labels.
+
+\paragraph{Baselines.}
+\emph{prior} predicts each label's training frequency for every comment; its
+ROC-AUC is 0.5 by construction and it shows what accuracy-like metrics reward
+on imbalanced data.  \emph{keyword} flags a comment when it contains a word
+from a fixed profanity list: it is the rule-based system a team would build
+without machine learning, and therefore the honest reference point for whether
+learning is worth it.
+
+\paragraph{Linear models.}
+The three linear models share one feature space: the union of a word TF-IDF
+(unigrams and bigrams, 50,000 features) and a character TF-IDF (2- to 5-grams
+within word boundaries, 50,000 features), both with sublinear term frequency.
+Character n-grams are robust to the misspellings and obfuscations that
+dominate abusive text.  Following the binary-relevance approach, one binary
+classifier is fitted per label, with balanced class weights:
+\begin{itemize}
+  \item \emph{logreg}: logistic regression;
+  \item \emph{linear\_svm}: a linear support vector machine, whose decision
+        function is squashed through a sigmoid to obtain a score;
+  \item \emph{nbsvm}: the NB-SVM of Wang and Manning~\cite{wang2012}, which
+        multiplies the features by the Naive Bayes log-count ratio
+        $r = \log\big(P(f \mid y{=}1) / P(f \mid y{=}0)\big)$ before fitting a
+        logistic regression.  It was among the strongest single models of the
+        competition.
+\end{itemize}
+
+\paragraph{Transformer.}
+\emph{distilbert} fine-tunes DistilBERT~\cite{sanh2019}
+(\texttt{distilbert-base-uncased}) with a six-unit sigmoid head under binary
+cross-entropy, for two epochs, with AdamW (learning rate $3\cdot10^{-5}$,
+weight decay 0.01), batch size 32, sequences truncated to 192 tokens, gradient
+clipping at 1.0 and mixed precision on the GPU.  Unlike the bag-of-n-grams
+models it sees word order and context, which is what can separate
+``this article is garbage'' from ``you are garbage''.
+
+\subsection{Cross validation}
+
+Plain stratified $k$-fold is defined for a single target.  We use
+\emph{iterative stratification}~\cite{sechidis2011}, which assigns comments to
+folds so that the frequency of every label, including the rare ones, is
+balanced across folds.  We use $k = \NFolds$, and all models are evaluated on
+the \emph{same} fold assignment, which makes a paired comparison of their
+per-fold scores valid.
+
+\subsection{Threshold tuning}
+
+Turning scores into labels needs a threshold per label.  Instead of the default
+0.5, we choose the threshold that maximises F1 on an inner hold-out of 15\% of
+each \emph{training} fold; the model is fitted on the remaining 85\%.  The
+validation fold is never used to choose a threshold, so the reported F1 is not
+optimistically biased.
+
+\subsection{Metrics}
+
+\begin{itemize}
+  \item \textbf{Mean column-wise ROC-AUC}, the competition's official metric:
+        the ROC-AUC of each label, averaged.  It is threshold-free and
+        insensitive to class imbalance.
+  \item \textbf{PR-AUC} (average precision) per label and averaged.  On a label
+        with a 0.3\% positive rate, ROC-AUC is dominated by the easy negatives;
+        PR-AUC measures how precise the model is on the positives, and is the
+        more discriminating metric for rare labels.
+  \item \textbf{Macro F1} (unweighted mean over labels, so rare labels count as
+        much as frequent ones) and \textbf{micro F1} (pooled over all
+        label decisions), at the tuned thresholds.
+  \item \textbf{Hamming loss} and \textbf{subset accuracy}, the standard
+        multi-label metrics, computed for every fold and stored in
+        \texttt{results/} for completeness.
+\end{itemize}
+
+\subsection{Statistical comparison}
+
+For each pair of models we apply the Wilcoxon signed-rank test to their
+per-fold mean column-wise AUCs, with a Bonferroni correction for the number of
+pairs.  With five folds the smallest attainable two-sided p-value is
+$2/2^5 = 0.0625$, reached when one model wins on every fold; no pairwise
+difference can therefore be significant at the 5\% level, and we report the
+consistency of the ranking across folds alongside the p-values.
+
+% =========================================================================== %
+\section{Implementation}
+% =========================================================================== %
+
+The application is written in Python and organised as a package
+(\texttt{src/}) used by command-line scripts and by three Jupyter notebooks,
+which also run on Google Colab.
+
+\begin{itemize}
+  \item \texttt{dataio}: loading and schema validation of the Kaggle files, and
+        a synthetic generator used to smoke-test the pipeline without the data.
+  \item \texttt{preprocessing}: the text cleaner and the TF-IDF vectorisers.
+  \item \texttt{models}: a common \texttt{fit}/\texttt{predict\_proba}
+        interface implemented by every model, and a registry that builds a
+        model from its name.
+  \item \texttt{evaluation}: multi-label folds, cross validation, metrics,
+        threshold optimisation, statistical tests, the hierarchy check and the
+        bias audit.
+  \item \texttt{repository}: persistence of datasets and results behind one
+        interface with two implementations, file system and in memory.  The
+        backend is selected by a single configuration value, an environment
+        variable or a command-line flag; no other code changes.
+\end{itemize}
+
+\texttt{scripts/run\_experiment.py} runs the cross validation and stores every
+artifact (per-fold metrics, out-of-fold scores, thresholds, significance
+matrix, bias audit) in \texttt{results/}.  Because the transformer needs a
+GPU, it is run separately, and \texttt{scripts/merge\_runs.py} folds its
+results into the main run after checking that both used the same folds.  The
+tables and figures of this report are generated from those files by two
+scripts, never copied by hand.
+A test suite of 80 \texttt{pytest} tests covers the data layer, the
+preprocessing, the models, the metrics, the cross validation and both
+persistence backends.
+
+% =========================================================================== %
+\section{Results}
+% =========================================================================== %
+
+\subsection{Model comparison}
+
+Table~\ref{tab:leaderboard} and Figure~\ref{fig:leaderboard} rank the models by
+the official metric.
+
+\begin{table}[H]
+  \centering
+  \caption{Cross-validated results, mean over \NFolds{} folds ($\pm$ standard
+    deviation for AUC).  F1 at the tuned thresholds.  Fit time per fold.}
+  \label{tab:leaderboard}
+  \input{tables/leaderboard.tex}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\linewidth]{leaderboard}
+  \caption{Mean column-wise ROC-AUC per model, with the standard deviation over
+    folds.}
+  \label{fig:leaderboard}
+\end{figure}
+
+Four observations stand out.
+
+\emph{Learning is worth it.}  The keyword baseline reaches an AUC of 0.78 but a
+macro F1 of only 0.25; every learned model exceeds 0.98 AUC and 0.63 macro F1.
+The prior baseline sits at exactly 0.5 AUC, as expected.
+
+\emph{The transformer is the best model on every metric.}  DistilBERT reaches
+\BestAUC{} AUC against \RunnerUpAUC{} for the best linear model, and it wins on
+each of the five folds (fold AUCs 0.9889--0.9916 against 0.9827--0.9850).  The
+gain is larger where it matters most: macro F1 rises from 0.641 to 0.683 and
+mean PR-AUC from 0.673 to 0.719, mainly through the rare labels
+(Section~\ref{sec:perlabel}).
+
+\emph{Among the linear models the differences are small but consistent.}
+logreg leads with 0.9841, ahead of nbsvm (0.9830) and linear\_svm (0.9800).
+The gap between logreg and nbsvm is only 0.001 AUC, yet logreg wins on all five
+folds.  In our feature space, which already includes character n-grams, the NB
+rescaling brings no gain.
+
+\emph{All learned models are close to the competition's best.}  The winning
+private-leaderboard score was about 0.988, obtained with large ensembles of
+deep models.  A single logistic regression comes within 0.005 of it, and a
+single DistilBERT matches it in cross validation (the two numbers come from
+different test protocols and are only indicative).
+
+\subsection{Per-label results}
+\label{sec:perlabel}
+
+The aggregate AUC hides how unequal the labels are
+(Table~\ref{tab:perlabel}, Figure~\ref{fig:prauc}).  For DistilBERT, ROC-AUC
+is above 0.98 on every label, but PR-AUC ranges from 0.92 on \emph{obscene} and
+\emph{toxic} to 0.50 on \emph{severe\_toxic}, 0.54 on \emph{threat} and 0.61 on
+\emph{identity\_hate}.  The frequent, lexically marked labels are easy; the rare
+ones are hard both because they have few training examples and because they
+depend on meaning rather than vocabulary -- a threat need not contain a single
+offensive word, and \emph{severe\_toxic} differs from \emph{toxic} by degree.
+The transformer's largest gains over logreg are on two of these rare labels:
++0.11 PR-AUC on \emph{identity\_hate} and +0.05 on \emph{severe\_toxic},
+against +0.015 to +0.036 on the other four.
+
+\begin{table}[H]
+  \centering
+  \caption{Per-label results of \BestModel, mean over folds.  Support is the
+    number of positives per validation fold.}
+  \label{tab:perlabel}
+  \input{tables/per_label.tex}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\linewidth]{pr_auc_per_label}
+  \caption{PR-AUC per label and model.}
+  \label{fig:prauc}
+\end{figure}
+
+\subsection{Effect of threshold tuning}
+
+Table~\ref{tab:thresholds} compares F1 at the default cut-off of 0.5 with F1 at
+the tuned threshold.  For DistilBERT the tuned thresholds lie \emph{below} 0.5,
+between 0.25 and 0.49, and they matter a great deal on the rare labels: +0.17
+F1 on \emph{severe\_toxic} and +0.11 on \emph{threat}.  Trained with an
+unweighted loss, the transformer is cautious about rare labels and its scores
+for them tend to stay below 0.5; the tuned threshold corrects this.
+
+The linear models behave in the opposite way.  They are trained with balanced
+class weights, which inflate the scores of the positive class: logreg's tuned
+thresholds lie between 0.60 and 0.75, and tuning gains only $-0.006$ to
+$+0.023$ F1, because the class weights have already done most of the
+correction.  Threshold tuning and class weighting are thus two answers to the
+same imbalance, and one of them is necessary.
+
+\begin{table}[H]
+  \centering
+  \caption{F1 of \BestModel{} at 0.5 and at the tuned threshold.}
+  \label{tab:thresholds}
+  \input{tables/threshold_gain.tex}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\linewidth]{threshold_sweep}
+  \caption{F1 as a function of the decision threshold, out-of-fold scores.}
+  \label{fig:sweep}
+\end{figure}
+
+\subsection{Statistical significance}
+
+Table~\ref{tab:significance} gives the pairwise Wilcoxon p-values.  Every pair
+reaches the minimum attainable value of 0.0625: for each pair of models, one of
+the two is better on all five folds.  The ranking is thus perfectly consistent
+across folds, but with five folds this cannot be declared significant at the
+5\% level, let alone at the Bonferroni-corrected level of $0.05/15 = 0.0033$.
+Establishing significance would require more folds or repeated cross
+validation.
+
+\begin{table}[H]
+  \centering
+  \caption{Pairwise Wilcoxon signed-rank p-values on the per-fold mean
+    column-wise AUC.  Bold: significant at the Bonferroni-corrected level.}
+  \label{tab:significance}
+  \input{tables/significance.tex}
+\end{table}
+
+\subsection{Cost against accuracy}
+
+Figure~\ref{fig:cost} relates accuracy to training cost.  The three linear
+models train in 3.5--4 minutes per fold on a laptop CPU, about 400 times the
+cost of the keyword rule but still cheap enough to retrain daily.  DistilBERT
+needs 37 minutes per fold on average on a laptop GPU (an NVIDIA RTX 4050 with
+mixed precision), about ten times as long; individual folds took between 19
+and 82 minutes.  The 0.006 AUC it gains costs
+an order of magnitude more compute and a GPU; whether that is worth it depends
+on how much the rare labels matter to the application.
+
+The two families were timed in separate runs on different machines -- the
+linear models on a laptop CPU, the transformer on a laptop GPU -- so the ratio
+is indicative only.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{cost_vs_accuracy}
+  \caption{Mean column-wise AUC against fit time per fold (log scale).}
+  \label{fig:cost}
+\end{figure}
+
+% =========================================================================== %
+\section{Error analysis}
+% =========================================================================== %
+
+\subsection{Confusion matrices}
+
+Figure~\ref{fig:confusion} shows the confusion matrix of each label at its
+tuned threshold, pooled over the out-of-fold predictions of DistilBERT.  On
+\emph{toxic} it makes 2,500 false positives and 2,626 false negatives out of
+15,294 toxic comments, against 2,766 and 3,301 for logreg.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{confusion_matrices}
+  \caption{Confusion matrices at the tuned thresholds, out-of-fold.}
+  \label{fig:confusion}
+\end{figure}
+
+\subsection{Error taxonomy}
+
+We read the false positives and false negatives on \emph{toxic} that each of
+logreg and DistilBERT was most confident about
+(\texttt{scripts/make\_error\_examples.py}), and compared the two models'
+scores on the same comments.  The errors fall into a few recurring categories.
+
+\paragraph{False positives (clean comments flagged as toxic).}
+\begin{itemize}
+  \item \emph{Annotation noise.}  Most of the confident ``errors'' of both
+        models are plainly abusive comments -- direct personal insults, often
+        with slurs (``you're an asshole and that's all there is to it'') --
+        that the annotators left unlabelled.  Here the model is right and the
+        label is wrong.  For DistilBERT, ten of its twelve most confident
+        false positives are of this kind.
+  \item \emph{Profanity without abuse.}  Swear words used descriptively or
+        about oneself.  A list of TV content ratings quoting the words they
+        warn about scores 1.00 under logreg but 0.45 under DistilBERT, which
+        is below its threshold: reading the context, the transformer
+        recognises the quotation.  A comment about oneself (``I'm going
+        through deep shit'') still fools both (1.00 and 0.83).
+  \item \emph{Mild incivility.}  Rude but borderline comments (``It must suck
+        to be you then'') on which annotators disagree.
+\end{itemize}
+
+\paragraph{False negatives (toxic comments missed).}
+\begin{itemize}
+  \item \emph{Annotation noise.}  Comments with no hostility at all -- a list
+        of a band's musical influences, a note about magazine-cover images --
+        are labelled toxic.  Both models score them near zero, rightly.
+  \item \emph{Shouting and heated disagreement.}  Comments written in capitals
+        or accusing other editors, with no offensive vocabulary
+        (``STOP DELETING MY ADDITION!'').  Both models miss them (0.00 and
+        0.04).
+  \item \emph{Sarcasm.}  ``Thanks for participating in the conspiracy against
+        me.''  The words are polite and the intent is not; both models score
+        it 0.00.
+  \item \emph{Harassment without profanity, and toxicity diluted by length.}
+        A sexual remark about a named person in innocuous words, or a short
+        insult followed by a long pasted article.  DistilBERT raises these
+        from about 0.00 under logreg to 0.17--0.20, but not above its
+        threshold.
+\end{itemize}
+
+The transformer's advantage is visible in exactly the categories that depend
+on context: who a swear word is aimed at, whether a sentence is a quotation.
+Sarcasm and shouting remain beyond both models.  And a large share of the
+remaining confident errors are labelling mistakes, which bound the score that
+any model can reach on this data.
+
+\subsection{Label hierarchy violations}
+\label{sec:hierarchy}
+
+The linear models predict each label independently, so nothing prevents them
+from predicting a sub-type without \emph{toxic}.  logreg does so for 4 of its
+2,503 \emph{severe\_toxic} predictions -- outputs that are impossible, since
+the label never occurs without \emph{toxic} -- and for about 7\% of its
+\emph{threat} and \emph{identity\_hate} predictions, close to the 6--7\% at
+which these labels occur without \emph{toxic} in the data.
+
+DistilBERT shares one encoder across the six outputs, and it behaves
+differently (Table~\ref{tab:hierarchy}): it never predicts \emph{severe\_toxic}
+or \emph{insult} without \emph{toxic}, and does so for at most 0.4\% of the
+other sub-labels.  It has thus learnt the hierarchy -- and in fact
+over-learnt it, since in the data 6--7\% of the \emph{obscene}, \emph{threat},
+\emph{insult} and \emph{identity\_hate} comments are \emph{not} labelled toxic.
+For the linear models, a post-processing rule that sets \emph{toxic} whenever
+\emph{severe\_toxic} is predicted would remove the impossible outputs.
+
+\begin{table}[H]
+  \centering
+  \caption{Predicted positives of each sub-label that lack a \emph{toxic}
+    prediction, \BestModel, out-of-fold.}
+  \label{tab:hierarchy}
+  \input{tables/hierarchy.tex}
+\end{table}
+
+% =========================================================================== %
+\section{Unintended bias}
+% =========================================================================== %
+
+A model trained on this corpus sees identity terms mostly in abusive contexts
+and can learn to penalise the term itself.  We measure this as follows: for
+each identity term, we take the clean comments that mention it and compute the
+false-positive rate of \emph{toxic} at the tuned threshold; dividing by the
+false-positive rate on all clean comments gives a ratio that is 1 for an
+unbiased model.
+
+\begin{table}[H]
+  \centering
+  \caption{False-positive rate on \emph{toxic} for clean comments mentioning
+    each identity term, against the background rate (\BestModel, out-of-fold).}
+  \label{tab:bias}
+  \input{tables/bias.tex}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\linewidth]{identity_bias}
+  \caption{False-positive rate on \emph{toxic} for clean comments mentioning
+    each term (bars), against the background rate (red marks), with the ratio
+    of the two; \BestModel, out-of-fold.}
+  \label{fig:bias}
+\end{figure}
+
+The bias is large (Table~\ref{tab:bias}, Figure~\ref{fig:bias}).  For
+DistilBERT, a clean comment mentioning \emph{gay} is flagged as toxic 6.8
+times as often as the average clean comment, \emph{lesbian} 6.2 times,
+\emph{transgender} 4.6 times (on only 31 comments) and \emph{black} 2.5 times.
+The cause is visible in the data: 55\% of the comments mentioning \emph{gay}
+are toxic, against 10\% overall, so the term itself is a strong predictor.
+The subgroup AUC stays high (0.94--0.99), which means the model still ranks
+toxic above non-toxic comments \emph{within} each group; the problem is that
+the whole group is shifted upwards.
+
+The bag-of-n-grams model is markedly worse.  Under logreg the ratio is 10.5 for
+\emph{gay} and 6.7 for \emph{lesbian}, and \emph{woman}, \emph{white},
+\emph{female} and \emph{transgender} are flagged about twice as often as the
+background.  Reading context halves several of these ratios -- \emph{woman}
+falls from 2.7 to 1.4, \emph{female} from 2.1 to 1.1 -- but does not remove
+the bias for the most targeted groups.
+
+In a moderation system this means that people talking about their own identity
+are silenced more often.  Remedies include augmenting the training data with
+neutral sentences containing the terms, reweighting the subgroups, or a
+fairness-aware objective; this is the problem that motivated Jigsaw's follow-up
+competition on unintended bias.
+
+% =========================================================================== %
+\section{Limitations}
+% =========================================================================== %
+
+\begin{itemize}
+  \item \emph{Five folds cannot establish significance}
+        (Table~\ref{tab:significance}); repeated cross validation would.
+  \item \emph{The cleaner's de-obfuscation is aggressive.}  It rewrites every
+        ``!'' as ``i'' to undo \texttt{sh!t}, which also turns an ordinary
+        ``world!'' into ``worldi''.  The character n-grams make the models
+        robust to this, but the rule should be restricted to tokens that
+        contain letters on both sides.
+  \item \emph{Binary relevance} ignores label correlations in the linear
+        models; classifier chains would exploit them, as the transformer's
+        shared encoder does.
+  \item \emph{The transformer was run once, with fixed hyper-parameters}
+        (two epochs, learning rate $3\cdot10^{-5}$, 192 tokens).  Larger
+        encoders such as RoBERTa, longer sequences, or a class-weighted loss
+        for the rare labels are natural next steps.
+  \item \emph{The two model families were evaluated in separate runs}, on
+        different machines and library versions, and merged
+        (\texttt{scripts/merge\_runs.py}).  The script checks that both runs
+        used the same corpus, seed and fold strategy; the linear models'
+        per-fold scores were reproduced identically on both machines, which
+        confirms that the folds coincide.
+  \item \emph{Annotation noise} bounds the attainable score, as the error
+        analysis shows.
+  \item The bias audit uses a short, English-only list of identity terms, and
+        some subgroups are small (31 comments mention \emph{transgender}).
+\end{itemize}
+
+% =========================================================================== %
+\section{Conclusion}
+% =========================================================================== %
+
+On the Jigsaw corpus a fine-tuned DistilBERT reaches a mean column-wise
+ROC-AUC of \BestAUC, and a well-configured linear model over word and character
+TF-IDF features \RunnerUpAUC{} at a tenth of the cost; both are far above a
+rule-based baseline.  The transformer's advantage is concentrated where context
+matters: the rare labels, profanity that is quoted rather than aimed at
+someone, and the label hierarchy, which it learns without being told.
+
+The headline number, however, is not where the difficulty lies.  The rare
+labels remain hard, many of the remaining errors are labelling mistakes or
+sarcasm that neither model understands, and both models are markedly biased
+against comments that mention identity groups -- the transformer less than the
+linear model, but still flagging a clean comment about gay people almost seven
+times as often as an average one.  Any deployment would have to address that
+bias before the accuracy figures become relevant.
+
+% =========================================================================== %
+\appendix
+\section{Reproducibility}
+% =========================================================================== %
+
+All results were produced with random seed \RandomSeed{} and
+\FoldStrategy{} stratification into \NFolds{} folds.  Table~\ref{tab:env} lists
+the software environment of the linear-model run.  The DistilBERT run used
+Python 3.10.11 with scikit-learn 1.7.2 on an NVIDIA RTX 4050 Laptop GPU.  To
+reproduce:
+
+\begin{verbatim}
+pip install -r requirements-dev.txt
+python scripts/download_data.py
+python scripts/run_experiment.py --folds 5 --tag experiment
+# on a machine with a CUDA GPU and requirements-dl.txt installed:
+python scripts/run_experiment.py --models distilbert --folds 5 --tag dl
+python scripts/merge_runs.py --base experiment --extra dl
+python scripts/make_report_assets.py && python scripts/make_report_figures.py
+\end{verbatim}
+
+\begin{table}[H]
+  \centering
+  \caption{Software and hardware of the linear-model run.}
+  \label{tab:env}
+  \input{tables/environment.tex}
+\end{table}
+
+\begin{thebibliography}{9}
+\bibitem{wang2012}
+  S.~Wang and C.~D.~Manning.
+  Baselines and bigrams: simple, good sentiment and topic classification.
+  In \emph{Proceedings of ACL}, 2012.
+
+\bibitem{sanh2019}
+  V.~Sanh, L.~Debut, J.~Chaumond and T.~Wolf.
+  DistilBERT, a distilled version of BERT: smaller, faster, cheaper and
+  lighter.
+  \emph{arXiv:1910.01108}, 2019.
+
+\bibitem{sechidis2011}
+  K.~Sechidis, G.~Tsoumakas and I.~Vlahavas.
+  On the stratification of multi-label data.
+  In \emph{ECML PKDD}, 2011.
+
+\bibitem{jigsaw2018}
+  Jigsaw and Google.
+  Toxic Comment Classification Challenge.
+  \url{https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge},
+  2018.
+\end{thebibliography}
+
+\end{document}

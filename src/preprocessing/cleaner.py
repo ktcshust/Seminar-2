@@ -18,7 +18,7 @@ _URL = re.compile(r"https?://\S+|www\.\S+")
 _IP = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b")
 _USER = re.compile(r"\[\[User(?:[^\]]*)\]\]", flags=re.IGNORECASE)
 _ESCAPED_NEWLINE = re.compile(r"\\[nrt]|\n|\r|\t")
-_NON_ALPHA = re.compile(r"[^a-z0-9'\s]")
+_NON_ALPHA = re.compile(r"[^A-Za-z0-9'\s]")
 _REPEATED_CHAR = re.compile(r"(.)\1{2,}")
 _WHITESPACE = re.compile(r"\s+")
 
@@ -29,7 +29,7 @@ _SYMBOL_LEET = str.maketrans({"@": "a", "$": "s", "!": "i"})
 #: Rewriting digits unconditionally would turn the year "2013" into "2oie" and
 #: destroy every number in the corpus, while "b1tch" still has to become "bitch".
 _DIGIT_LEET = str.maketrans({"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t"})
-_MIXED_TOKEN = re.compile(r"\b(?=\w*[a-z])(?=\w*\d)\w+\b")
+_MIXED_TOKEN = re.compile(r"\b(?=\w*[A-Za-z])(?=\w*\d)\w+\b")
 
 #: Expanded so that negations survive tokenisation ("can't" -> "can not").
 _CONTRACTIONS = {

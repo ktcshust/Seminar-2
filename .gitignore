@@ -1,0 +1,28 @@
+# Environments
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# The Jigsaw data may not be redistributed: fetch it with `make data`.
+data/
+
+# Fitted models and large binary artifacts
+*.pt
+*.bin
+
+# LaTeX build products
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
+report/*.bbl
+report/*.blg
+
+# Figures the notebooks render from their 20k-comment subsample
+report/figures/notebook_*
