@@ -4,6 +4,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{booktabs}
+\usepackage{array}
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{float}
@@ -11,6 +12,8 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{xcolor}
 \usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
 
 \lstset{
   language=Python,
@@ -73,6 +76,17 @@ hateful towards an identity group.
 The project brief asks us to implement machine learning or deep learning
 classifiers, evaluate them with suitable metrics under $k$-fold cross
 validation, compare them with dedicated baselines, and analyse the results.
+We organise the study around four research questions:
+
+\begin{description}
+  \item[RQ1] Which model classifies toxic comments best, and is its gain over
+        simple baselines worth the cost?
+  \item[RQ2] How do the models cope with rare labels and label imbalance?
+  \item[RQ3] How reliable are the cross-validated results?
+  \item[RQ4] What errors remain, and are the models biased against identity
+        groups?
+\end{description}
+
 Our contributions are:
 
 \begin{itemize}
@@ -80,20 +94,54 @@ Our contributions are:
         one shared fold assignment, so that models can be compared pairwise;
   \item a comparison of six models, from a constant predictor to a fine-tuned
         transformer, with the competition's metric and with metrics that
-        expose the rare labels;
+        expose the rare labels, and a check of the linear models on the
+        official test set;
   \item an analysis of what the best model gets wrong: an error taxonomy built
         from concrete examples, violations of the label hierarchy, and an audit
         of unintended bias against identity terms.
 \end{itemize}
 
 % =========================================================================== %
+\section{Related work}
+% =========================================================================== %
+
+\paragraph{The data.}  The corpus comes from the Wikipedia Detox project of
+Wulczyn et al.~\cite{wulczyn2017}, who crowd-sourced annotations of talk-page
+comments and found that a classifier could perform comparably to the
+aggregated judgement of several annotators.  Jigsaw and Google released an extended version as the Toxic
+Comment Classification Challenge~\cite{jigsaw2018}, with the six labels used
+here.
+
+\paragraph{Models.}  Linear models over n-gram features are strong baselines
+for short-text classification; NB-SVM~\cite{wang2012} improves them by
+rescaling the features with Naive Bayes log-count ratios and was a widely
+used baseline in the competition.  Many of the top competition entries
+ensembled recurrent neural networks over pre-trained word embeddings.  Pre-trained
+transformers such as BERT~\cite{devlin2019} have since become the standard
+approach to text classification; DistilBERT~\cite{sanh2019} compresses BERT
+by knowledge distillation at a small cost in accuracy, which makes
+fine-tuning feasible on a laptop GPU.
+
+\paragraph{Unintended bias.}  Dixon et al.~\cite{dixon2018} showed on this
+same data that toxicity classifiers learn to associate identity terms such as
+\emph{gay} with toxicity, and measured it by comparing error rates on
+synthetic sentences that mention different identities.  Borkan et
+al.~\cite{borkan2019} proposed threshold-free subgroup metrics, which became
+the evaluation of Jigsaw's follow-up competition on unintended bias.  Our
+audit (Section~\ref{sec:bias}) follows the same idea -- comparing the
+false-positive rate on comments that mention a term with the background rate
+-- on real comments rather than synthetic ones.
+
+% =========================================================================== %
 \section{Dataset}
 % =========================================================================== %
 
 The training set contains \NComments{} comments, each with six binary labels.
-The competition's test set is labelled only partially and only after the
-competition closed (63,978 of 153,164 rows are usable), so, as the brief
-requires, we evaluate exclusively by cross validation on the training set.
+As the brief requires, models are compared by $k$-fold cross validation on the
+training set.  The competition's test set was labelled only after the
+competition closed, and only partially (63,978 of 153,164 rows are usable); we
+use those rows once, at the end, to check how the cross-validated numbers
+transfer to unseen data (Section~\ref{sec:testset}).
 
 \subsection{Label frequency}
 
@@ -119,7 +167,7 @@ not always (for instance 523 obscene comments are not labelled toxic).  A
 binary-relevance model, which trains each label independently, ignores this
 structure; Section~\ref{sec:hierarchy} measures what that costs.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
   \centering
   \includegraphics[width=0.6\linewidth]{label_cooccurrence}
   \caption{Conditional co-occurrence $P(\text{column} \mid \text{row})$.}
@@ -133,7 +181,7 @@ words, the 95th percentile 230 and the longest 1,411.  This informs the
 transformer's maximum sequence length of 192 sub-word tokens, which keeps most
 comments whole.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
   \centering
   \includegraphics[width=0.95\linewidth]{comment_length}
   \caption{Distribution of comment length, and length by toxicity.}
@@ -143,6 +191,40 @@ comments whole.
 % =========================================================================== %
 \section{Methodology}
 % =========================================================================== %
+
+Figure~\ref{fig:pipeline} summarises the system.  Two families of models turn
+a comment into one score per label: linear classifiers over TF-IDF features,
+and a fine-tuned transformer that reads the raw text.  A per-label threshold
+then turns each score into a decision.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+      node distance=0.45cm and 0.45cm,
+      box/.style={draw, rounded corners=2pt, align=center, font=\small,
+                  minimum height=2.4em, inner sep=4pt},
+      arrow/.style={-{Stealth[length=2mm]}, thick}]
+    \node[box] (raw) {Raw\\comment};
+    \node[box, right=of raw] (clean) {Cleaning};
+    \node[box, right=of clean] (tfidf) {TF-IDF\\{\scriptsize word + char}};
+    \node[box, right=of tfidf] (lin) {Linear model\\{\scriptsize one per label}};
+    \node[box, below=0.6cm of tfidf] (tok) {WordPiece\\tokenizer};
+    \node[box, right=of tok] (bert) {DistilBERT\\{\scriptsize 6 sigmoids}};
+    \node[box, right=0.7cm of lin, yshift=-0.75cm] (thr) {Per-label\\threshold};
+    \node[box, right=of thr, fill=black!8] (out) {6 labels};
+    \draw[arrow] (raw) -- (clean);
+    \draw[arrow] (clean) -- (tfidf);
+    \draw[arrow] (tfidf) -- (lin);
+    \draw[arrow] (raw) |- (tok);
+    \draw[arrow] (tok) -- (bert);
+    \draw[arrow] (lin.east) -| (thr.north);
+    \draw[arrow] (bert.east) -| (thr.south);
+    \draw[arrow] (thr) -- (out);
+  \end{tikzpicture}
+  \caption{Overview of the system.  Top: the classical pipeline; bottom: the
+    transformer.  Thresholds are tuned on data from the training fold only.}
+  \label{fig:pipeline}
+\end{figure}
 
 \subsection{Preprocessing}
 
@@ -173,29 +255,75 @@ learning is worth it.
 \paragraph{Linear models.}
 The three linear models share one feature space: the union of a word TF-IDF
 (unigrams and bigrams, 50,000 features) and a character TF-IDF (2- to 5-grams
-within word boundaries, 50,000 features), both with sublinear term frequency.
-Character n-grams are robust to the misspellings and obfuscations that
-dominate abusive text.  Following the binary-relevance approach, one binary
-classifier is fitted per label, with balanced class weights:
+within word boundaries, 50,000 features).  A term $t$ in comment $d$ is
+weighted by
+\begin{equation}
+  w_{t,d} = \bigl(1 + \log \mathit{tf}_{t,d}\bigr) \cdot \mathit{idf}_t,
+  \qquad
+  \mathit{idf}_t = \log\frac{1 + N}{1 + \mathit{df}_t} + 1,
+\end{equation}
+where $\mathit{tf}_{t,d}$ counts $t$ in $d$, $N$ is the number of training
+comments and $\mathit{df}_t$ the number containing $t$; each vector is then
+normalised to unit length.  The logarithm on the term frequency (``sublinear''
+TF) stops a word repeated ten times from dominating the vector.  Character
+n-grams are robust to the misspellings and obfuscations that dominate abusive
+text: the pieces of \texttt{stuupid} survive even when the whole word is
+spelt differently.  The vectorisers are fitted on the training fold only.
+
+Following the binary-relevance approach, one binary classifier is fitted per
+label.  All three compute a linear score $s(\mathbf{x}) = \mathbf{w}^\top
+\mathbf{x} + b$ and differ in how $\mathbf{w}$ is learnt.  For a label with
+targets $y_i \in \{0,1\}$ (or $\pm1$ for the SVM) and class weights $c_i$,
+logistic regression and the linear SVM minimise respectively
+\begin{equation}
+  \frac{\lVert \mathbf{w} \rVert^2}{2C}
+  + \sum_i c_i \Bigl[ -y_i \log \sigma(s_i) - (1-y_i)\log\bigl(1-\sigma(s_i)\bigr) \Bigr],
+  \qquad
+  \frac{\lVert \mathbf{w} \rVert^2}{2C} + \sum_i c_i \max(0,\, 1 - y_i s_i)^2,
+\end{equation}
+the L2-regularised log-loss and squared hinge loss, where $\sigma$ is the
+logistic function and $C$ sets the strength of the regularisation.  The three
+models are:
 \begin{itemize}
-  \item \emph{logreg}: logistic regression;
-  \item \emph{linear\_svm}: a linear support vector machine, whose decision
-        function is squashed through a sigmoid to obtain a score;
+  \item \emph{logreg}: logistic regression with balanced class weights
+        ($C = 4$);
+  \item \emph{linear\_svm}: a linear support vector machine with balanced
+        class weights ($C = 0.5$), whose decision function is squashed through
+        a sigmoid to obtain a score;
   \item \emph{nbsvm}: the NB-SVM of Wang and Manning~\cite{wang2012}, which
         multiplies the features by the Naive Bayes log-count ratio
-        $r = \log\big(P(f \mid y{=}1) / P(f \mid y{=}0)\big)$ before fitting a
-        logistic regression.  It was among the strongest single models of the
-        competition.
+        $r = \log\big(P(f \mid y{=}1) / P(f \mid y{=}0)\big)$ before fitting an
+        unweighted logistic regression ($C = 4$); the rescaling itself already
+        emphasises the features of the positive class.  It was a popular and
+        strong baseline in the competition.
 \end{itemize}
+Balanced class weights scale each class inversely to its frequency: for
+\emph{threat}, a positive example weighs about 330 times as much as a negative
+one.
 
 \paragraph{Transformer.}
 \emph{distilbert} fine-tunes DistilBERT~\cite{sanh2019}
-(\texttt{distilbert-base-uncased}) with a six-unit sigmoid head under binary
-cross-entropy, for two epochs, with AdamW (learning rate $3\cdot10^{-5}$,
-weight decay 0.01), batch size 32, sequences truncated to 192 tokens, gradient
-clipping at 1.0 and mixed precision on the GPU.  Unlike the bag-of-n-grams
-models it sees word order and context, which is what can separate
-``this article is garbage'' from ``you are garbage''.
+(\texttt{distilbert-base-uncased}), a version of BERT compressed by knowledge
+distillation: 6 transformer layers instead of 12, hidden size 768, 12
+attention heads and 66 million parameters, 40\% smaller and 60\% faster than
+BERT-base while retaining 97\% of its score on the GLUE benchmark.  A comment
+is split into WordPiece sub-word tokens, prefixed with a \texttt{[CLS]} token
+and truncated to 192 tokens.  Self-attention lets every token's
+representation depend on the whole comment, which is what can separate
+``this article is garbage'' from ``you are garbage''.  The final
+representation of \texttt{[CLS]} feeds a new classification head with six
+outputs $z_k$, one per label, each passed through a sigmoid, $p_k =
+\sigma(z_k)$.  Because the labels are not mutually exclusive, the head uses
+six independent sigmoids rather than a softmax, and the loss is the binary
+cross-entropy summed over the labels,
+\begin{equation}
+  \mathcal{L} = -\sum_{k=1}^{6} \bigl[\, y_k \log p_k + (1-y_k)\log(1-p_k) \bigr].
+\end{equation}
+The whole network is trained for two epochs with AdamW (learning rate
+$3\cdot10^{-5}$, weight decay 0.01), batch size 32, gradient clipping at 1.0
+and mixed precision, on an NVIDIA RTX 4050 laptop GPU with 6\,GB of memory.
+The loss is not class-weighted, which matters for the thresholds
+(Section~\ref{sec:thresholds}).
 
 \subsection{Cross validation}
 
@@ -331,7 +459,17 @@ persistence backends.
 \section{Results}
 % =========================================================================== %
 
-\subsection{Model comparison}
+This section and the next two answer the research questions in turn: the
+model comparison and its cost answer RQ1
+(Sections~ef{sec:comparison} and~ef{sec:cost}); the per-label results,
+the thresholds and the label hierarchy answer RQ2
+(Sections~ef{sec:perlabel}, ef{sec:thresholds} and~ef{sec:hierarchy});
+the official test set and the significance tests answer RQ3
+(Sections~ef{sec:testset} and~ef{sec:significance}); and the error and
+bias analyses answer RQ4 (Sections~ef{sec:errors} and~ef{sec:bias}).
+
+\subsection{Model comparison (RQ1)}
+\label{sec:comparison}
 
 Table~\ref{tab:leaderboard} and Figure~\ref{fig:leaderboard} rank the models by
 the official metric.
@@ -378,7 +516,7 @@ deep models.  In cross validation a single logistic regression comes within
 optimistic: on the official test set the logistic regression scores 0.9784
 (Section~\ref{sec:testset}).
 
-\subsection{Per-label results}
+\subsection{Per-label results (RQ2)}
 \label{sec:perlabel}
 
 The aggregate AUC hides how unequal the labels are
@@ -408,7 +546,8 @@ against +0.015 to +0.036 on the other four.
   \label{fig:prauc}
 \end{figure}
 
-\subsection{Effect of threshold tuning}
+\subsection{Effect of threshold tuning (RQ2)}
+\label{sec:thresholds}
 
 Table~\ref{tab:thresholds} compares F1 at the default cut-off of 0.5 with F1 at
 the tuned threshold.  For DistilBERT the tuned thresholds lie \emph{below} 0.5,
@@ -417,8 +556,9 @@ F1 on \emph{severe\_toxic} and +0.11 on \emph{threat}.  Trained with an
 unweighted loss, the transformer is cautious about rare labels and its scores
 for them tend to stay below 0.5; the tuned threshold corrects this.
 
-The linear models behave in the opposite way.  They are trained with balanced
-class weights, which inflate the scores of the positive class: logreg's tuned
+Logistic regression and the linear SVM behave in the opposite way.  They are
+trained with balanced class weights, which inflate the scores of the positive
+class: logreg's tuned
 thresholds lie between 0.60 and 0.75, and tuning gains only $-0.006$ to
 $+0.023$ F1, because the class weights have already done most of the
 correction.  Threshold tuning and class weighting are thus two answers to the
@@ -438,7 +578,7 @@ same imbalance, and one of them is necessary.
   \label{fig:sweep}
 \end{figure}
 
-\subsection{Official test set}
+\subsection{Official test set (RQ3)}
 \label{sec:testset}
 
 Cross validation compares models with each other; it does not say how a model
@@ -466,7 +606,8 @@ between our best linear model and the winning private-leaderboard score
 (about 0.988) is 0.010 rather than the 0.005 that the cross-validated number
 suggests.
 
-\subsection{Statistical significance}
+\subsection{Statistical significance (RQ3)}
+\label{sec:significance}
 
 Table~\ref{tab:significance} gives the pairwise Wilcoxon p-values.  Every pair
 reaches the minimum attainable value of 0.0625: for each pair of models, one of
@@ -484,7 +625,8 @@ validation.
   \input{tables/significance.tex}
 \end{table}
 
-\subsection{Cost against accuracy}
+\subsection{Cost against accuracy (RQ1)}
+\label{sec:cost}
 
 Figure~\ref{fig:cost} relates accuracy to training cost.  The three linear
 models train in 3.5--4 minutes per fold on a laptop CPU, about 400 times the
@@ -507,7 +649,8 @@ is indicative only.
 \end{figure}
 
 % =========================================================================== %
-\section{Error analysis}
+\section{Error analysis (RQ4)}
+\label{sec:errors}
 % =========================================================================== %
 
 \subsection{Confusion matrices}
@@ -574,7 +717,7 @@ Sarcasm and shouting remain beyond both models.  And a large share of the
 remaining confident errors are labelling mistakes, which bound the score that
 any model can reach on this data.
 
-\subsection{Label hierarchy violations}
+\subsection{Label hierarchy violations (RQ2)}
 \label{sec:hierarchy}
 
 The linear models predict each label independently, so nothing prevents them
@@ -602,7 +745,8 @@ For the linear models, a post-processing rule that sets \emph{toxic} whenever
 \end{table}
 
 % =========================================================================== %
-\section{Unintended bias}
+\section{Unintended bias (RQ4)}
+\label{sec:bias}
 % =========================================================================== %
 
 A model trained on this corpus sees identity terms mostly in abusive contexts
@@ -687,20 +831,46 @@ competition on unintended bias.
 \section{Conclusion}
 % =========================================================================== %
 
-On the Jigsaw corpus a fine-tuned DistilBERT reaches a mean column-wise
-ROC-AUC of \BestAUC, and a well-configured linear model over word and character
-TF-IDF features \RunnerUpAUC{} at a tenth of the cost; both are far above a
-rule-based baseline.  The transformer's advantage is concentrated where context
-matters: the rare labels, profanity that is quoted rather than aimed at
-someone, and the label hierarchy, which it learns without being told.
+We answer the four research questions as follows.
 
-The headline number, however, is not where the difficulty lies.  The rare
-labels remain hard, many of the remaining errors are labelling mistakes or
-sarcasm that neither model understands, and both models are markedly biased
-against comments that mention identity groups -- the transformer less than the
-linear model, but still flagging a clean comment about gay people almost seven
-times as often as an average one.  Any deployment would have to address that
-bias before the accuracy figures become relevant.
+\begin{description}
+  \item[RQ1 -- best model and cost.]  A fine-tuned DistilBERT reaches a mean
+    column-wise ROC-AUC of \BestAUC{} and beats every other model on each of
+    the five folds; a well-configured linear model over word and character
+    TF-IDF features reaches \RunnerUpAUC{} at about a tenth of the training
+    cost.  Both are far above the keyword baseline (0.78), so learning clearly
+    pays off; whether the transformer's extra 0.006 AUC is worth a GPU depends
+    on how much the rare labels matter.
+  \item[RQ2 -- rare labels and imbalance.]  The rare labels remain hard: even
+    DistilBERT reaches a PR-AUC of only 0.50--0.61 on \emph{severe\_toxic},
+    \emph{threat} and \emph{identity\_hate}, although this is also where it
+    gains most over the linear models.  Some correction for imbalance is
+    essential -- per-label thresholds for the unweighted transformer
+    (+0.17 F1 on \emph{severe\_toxic}), class weights for the linear models --
+    and the transformer's shared encoder learns the label hierarchy that
+    binary relevance ignores.
+  \item[RQ3 -- reliability.]  The ranking of the models is the same on all
+    five folds and on the official test set, but cross validation on the
+    training set is optimistic by about 0.005 AUC, and five folds are too few
+    for the Wilcoxon test to declare any difference significant.
+  \item[RQ4 -- errors and bias.]  Many of the most confident errors are
+    labelling mistakes; reading context lets the transformer recognise quoted
+    profanity, but sarcasm and shouting defeat both models.  Both are markedly
+    biased against identity terms: a clean comment about gay people is flagged
+    10.5 times as often as an average clean comment by logistic regression, and
+    6.8 times by DistilBERT.
+\end{description}
+
+The headline number, then, is not where the difficulty lies.  Any deployment
+would have to address the rare labels and, above all, the identity bias before
+the accuracy figures become relevant.
+
+\paragraph{Future work.}  Repeated cross validation would settle the
+significance question; evaluating DistilBERT on the official test set would
+complete RQ3; larger encoders (RoBERTa), longer inputs or a class-weighted loss
+may help the rare labels; and augmenting the training data with neutral
+sentences that mention identity terms is the standard first step against the
+bias measured here.
 
 % =========================================================================== %
 \appendix
@@ -740,7 +910,9 @@ repository, so that the Git history attributes each part to its author.
 \begin{table}[H]
   \centering
   \small
-  \begin{tabular}{p{2.6cm}p{3.4cm}p{8.4cm}}
+  \begin{tabular}{>{\raggedright\arraybackslash}p{2.4cm}
+                  >{\raggedright\arraybackslash}p{3.6cm}
+                  >{\raggedright\arraybackslash}p{8.4cm}}
     \toprule
     Member & Area & Main files \\
     \midrule
@@ -783,6 +955,30 @@ Each member wrote the tests for their own area.
   Toxic Comment Classification Challenge.
   \url{https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge},
   2018.
+
+\bibitem{wulczyn2017}
+  E.~Wulczyn, N.~Thain and L.~Dixon.
+  Ex Machina: personal attacks seen at scale.
+  In \emph{Proceedings of the 26th International Conference on World Wide
+  Web (WWW)}, 2017.
+
+\bibitem{devlin2019}
+  J.~Devlin, M.-W.~Chang, K.~Lee and K.~Toutanova.
+  BERT: pre-training of deep bidirectional transformers for language
+  understanding.
+  In \emph{Proceedings of NAACL-HLT}, 2019.
+
+\bibitem{dixon2018}
+  L.~Dixon, J.~Li, J.~Sorensen, N.~Thain and L.~Vasserman.
+  Measuring and mitigating unintended bias in text classification.
+  In \emph{Proceedings of the AAAI/ACM Conference on AI, Ethics, and Society
+  (AIES)}, 2018.
+
+\bibitem{borkan2019}
+  D.~Borkan, L.~Dixon, J.~Sorensen, N.~Thain and L.~Vasserman.
+  Nuanced metrics for measuring unintended bias with real data for text
+  classification.
+  In \emph{Companion Proceedings of the World Wide Web Conference}, 2019.
 \end{thebibliography}
 
 \end{document}

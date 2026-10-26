@@ -74,7 +74,12 @@ scripts/
 notebooks/             exploratory analysis, model comparison, error and bias analysis
 results/               stored experiment artifacts (JSON + joblib)
 report/                LaTeX report, generated tables and figures
-slides/                Beamer presentation in the HUST style (latexmk -pdf main.tex)
+slides/                presentation in the HUST style, four parts (presenters A-D):
+                         main.tex / main.pdf    Beamer version (latexmk -pdf main.tex)
+                         main.pptx, main_vi.pptx  PowerPoint, English and Vietnamese,
+                                                with bilingual speaker notes
+                                                (python slides/build_pptx.py [--lang vi])
+                         speaker_notes.py/.md   the notes, per slide
 tests/                 pytest suite
 ```
 
