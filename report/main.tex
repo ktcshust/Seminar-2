@@ -1,7 +1,9 @@
 \documentclass[11pt,a4paper]{article}
 
 \usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
+\usepackage[T5,T1]{fontenc}
+% Vietnamese names need the T5 encoding; the rest of the text stays in T1.
+\newcommand{\vn}[1]{{\fontencoding{T5}\selectfont #1}}
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{booktabs}
 \usepackage{array}
@@ -33,8 +35,17 @@
 
 \title{Toxic Comment Classification\\[0.3em]
   \large Seminar project, topic 3: multi-label classification of the Jigsaw corpus}
-\author{Group members: \textit{(names and student IDs)}\\[0.3em]
-  \small Course teacher: Assoc.\ Prof.\ Phuong T.\ Nguyen, University of L'Aquila}
+\author{Group 9\\[0.5em]
+  \normalsize
+  \begin{tabular}{ll}
+    \vn{Bùi Tá Cường}      & 20242430M \\
+    \vn{Vũ Tuấn Kiệt}      & 20242434M \\
+    \vn{Nguyễn Đức Dũng}   & 20242171M \\
+    \vn{Vũ Mạnh Cường}     & 20252562M \\
+    \vn{Trần Tiến Dũng}    & 20252574M \\
+  \end{tabular}\\
+  % A strut forces the gap; \\[..] after a nested tabular is ignored here.
+  \rule{0pt}{2.2em}Course teacher: Assoc.\ Prof.\ Phuong T.\ Nguyen, University of L'Aquila}
 \date{\today}
 
 \begin{document}
@@ -461,12 +472,12 @@ persistence backends.
 
 This section and the next two answer the research questions in turn: the
 model comparison and its cost answer RQ1
-(Sections~ef{sec:comparison} and~ef{sec:cost}); the per-label results,
+(Sections~\ref{sec:comparison} and~\ref{sec:cost}); the per-label results,
 the thresholds and the label hierarchy answer RQ2
-(Sections~ef{sec:perlabel}, ef{sec:thresholds} and~ef{sec:hierarchy});
+(Sections~\ref{sec:perlabel}, \ref{sec:thresholds} and~\ref{sec:hierarchy});
 the official test set and the significance tests answer RQ3
-(Sections~ef{sec:testset} and~ef{sec:significance}); and the error and
-bias analyses answer RQ4 (Sections~ef{sec:errors} and~ef{sec:bias}).
+(Sections~\ref{sec:testset} and~\ref{sec:significance}); and the error and
+bias analyses answer RQ4 (Sections~\ref{sec:errors} and~\ref{sec:bias}).
 
 \subsection{Model comparison (RQ1)}
 \label{sec:comparison}
@@ -880,7 +891,8 @@ bias measured here.
 All results were produced with random seed \RandomSeed{} and
 \FoldStrategy{} stratification into \NFolds{} folds.  Table~\ref{tab:env} lists
 the software environment of the linear-model run.  The DistilBERT run used
-Python 3.10.11 with scikit-learn 1.7.2 on an NVIDIA RTX 4050 Laptop GPU.  To
+Python 3.10.11 with scikit-learn 1.7.2 on an NVIDIA RTX 4050 Laptop GPU.  The
+source code is available at \url{https://github.com/ktcshust/Seminar-2}.  To
 reproduce:
 
 \begin{verbatim}
@@ -904,34 +916,21 @@ python scripts/make_report_assets.py && python scripts/make_report_figures.py
 \section{Division of work}
 % =========================================================================== %
 
-The work was split into four areas that map onto disjoint parts of the
-repository, so that the Git history attributes each part to its author.
-
 \begin{table}[H]
   \centering
   \small
-  \begin{tabular}{>{\raggedright\arraybackslash}p{2.4cm}
-                  >{\raggedright\arraybackslash}p{3.6cm}
-                  >{\raggedright\arraybackslash}p{8.4cm}}
+  \begin{tabular}{>{\raggedright\arraybackslash}p{4.2cm}
+                  >{\raggedright\arraybackslash}p{5.6cm}}
     \toprule
-    Member & Area & Main files \\
+    Member & Area \\
     \midrule
-    \textit{(name)} & Data and persistence &
-      \texttt{src/dataio/}, \texttt{src/repository/},
-      \texttt{scripts/download\_data.py}, notebook 01 \\
-    \textit{(name)} & Features and classical models &
-      \texttt{src/preprocessing/}, \texttt{src/models/linear.py},
-      \texttt{src/models/dummy.py}, \texttt{src/models/registry.py} \\
-    \textit{(name)} & Deep learning &
-      \texttt{src/models/transformer.py}, the GPU runs \\
-    \textit{(name)} & Evaluation, analysis and report &
-      \texttt{src/evaluation/}, \texttt{scripts/}, notebooks 02 and 03,
-      \texttt{report/} \\
+    \vn{Bùi Tá Cường} & Data and persistence \\
+    \vn{Nguyễn Đức Dũng},\newline \vn{Vũ Mạnh Cường} & Features and classical models \\
+    \vn{Vũ Tuấn Kiệt} & Deep learning \\
+    \vn{Trần Tiến Dũng} & Evaluation, analysis and report \\
     \bottomrule
   \end{tabular}
 \end{table}
-
-Each member wrote the tests for their own area.
 
 \begin{thebibliography}{9}
 \bibitem{wang2012}
