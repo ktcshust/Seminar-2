@@ -10,6 +10,17 @@
 \usepackage{caption}
 \usepackage[hidelinks]{hyperref}
 \usepackage{xcolor}
+\usepackage{listings}
+
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue!60!black},
+  commentstyle=\color{gray},
+  frame=single,
+  columns=fullflexible,
+  keepspaces=true,
+}
 
 \graphicspath{{figures/}}
 
@@ -249,10 +260,61 @@ which also run on Google Colab.
         threshold optimisation, statistical tests, the hierarchy check and the
         bias audit.
   \item \texttt{repository}: persistence of datasets and results behind one
-        interface with two implementations, file system and in memory.  The
-        backend is selected by a single configuration value, an environment
-        variable or a command-line flag; no other code changes.
+        interface with two implementations, file system and in memory
+        (Section~\ref{sec:persistence}).
 \end{itemize}
+
+\subsection{Persistence layer}
+\label{sec:persistence}
+
+The course requires that data can be managed both in memory and through files,
+and that switching between the two leaves the classes, their methods and the
+business logic unchanged.  We meet this with the \emph{repository} pattern.
+Two abstract base classes define what can be done with stored data, without
+saying where it is stored:
+
+\begin{lstlisting}
+class DatasetRepository(ABC):          # tabular data (pandas.DataFrame)
+    def save(self, name: str, frame: pd.DataFrame) -> None: ...
+    def load(self, name: str) -> pd.DataFrame: ...
+    def exists(self, name: str) -> bool: ...
+    def list_datasets(self) -> list[str]: ...
+    def delete(self, name: str) -> None: ...
+
+class ArtifactRepository(ABC):         # results: metrics, scores, models
+    def save(self, name: str, obj: Any) -> None: ...
+    def load(self, name: str) -> Any: ...
+    def exists(self, name: str) -> bool: ...
+    def list_artifacts(self) -> list[str]: ...
+    def delete(self, name: str) -> None: ...
+\end{lstlisting}
+
+Each has two implementations.  The file-system ones write CSV or Parquet files
+for datasets, and JSON (or \texttt{joblib} for objects JSON cannot represent)
+for artifacts; the in-memory ones keep the objects in a dictionary and return
+deep copies of data frames and of plain containers, so that a caller cannot
+mutate stored data by accident.  A factory is the
+only code that names a concrete class:
+
+\begin{lstlisting}
+def get_dataset_repository(config) -> DatasetRepository:
+    if config.persistence_backend == "memory":
+        return _MEMORY_DATASETS              # process-wide singleton
+    return FileDatasetRepository(root=config.processed_dir)
+\end{lstlisting}
+
+Every other module -- the data loader, the experiment runner, the report
+scripts, the notebooks -- obtains its repository from the factory and is typed
+against the abstract interface only.  Switching the whole application between
+the two layers is therefore a single value: the \texttt{persistence\_backend}
+field of the configuration, the \texttt{TCC\_PERSISTENCE} environment
+variable, or the \texttt{--backend file|memory} flag of the experiment
+scripts.  The repository tests are parametrised to run unchanged against both
+implementations, and the suite includes a
+test that executes one piece of business logic under each backend and checks
+that the results are identical.  In practice we use the memory backend for
+quick notebook sessions and for the tests, and the file backend for the
+experiments, whose results must outlive the process.
 
 \texttt{scripts/run\_experiment.py} runs the cross validation and stores every
 artifact (per-fold metrics, out-of-fold scores, thresholds, significance
@@ -638,6 +700,37 @@ python scripts/make_report_assets.py && python scripts/make_report_figures.py
   \label{tab:env}
   \input{tables/environment.tex}
 \end{table}
+
+% =========================================================================== %
+\section{Division of work}
+% =========================================================================== %
+
+The work was split into four areas that map onto disjoint parts of the
+repository, so that the Git history attributes each part to its author.
+
+\begin{table}[H]
+  \centering
+  \small
+  \begin{tabular}{p{2.6cm}p{3.4cm}p{8.4cm}}
+    \toprule
+    Member & Area & Main files \\
+    \midrule
+    \textit{(name)} & Data and persistence &
+      \texttt{src/dataio/}, \texttt{src/repository/},
+      \texttt{scripts/download\_data.py}, notebook 01 \\
+    \textit{(name)} & Features and classical models &
+      \texttt{src/preprocessing/}, \texttt{src/models/linear.py},
+      \texttt{src/models/dummy.py}, \texttt{src/models/registry.py} \\
+    \textit{(name)} & Deep learning &
+      \texttt{src/models/transformer.py}, the GPU runs \\
+    \textit{(name)} & Evaluation, analysis and report &
+      \texttt{src/evaluation/}, \texttt{scripts/}, notebooks 02 and 03,
+      \texttt{report/} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Each member wrote the tests for their own area.
 
 \begin{thebibliography}{9}
 \bibitem{wang2012}

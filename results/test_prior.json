@@ -1,0 +1,89 @@
+{
+  "fit_seconds": 0.011164100025780499,
+  "label_summary": {
+    "f1": {
+      "identity_hate": 0.0,
+      "insult": 0.1016838513463393,
+      "obscene": 0.10908983434068777,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 0.17383113546840212
+    },
+    "positive_rate": {
+      "identity_hate": 0.011128825533777236,
+      "insult": 0.053565288067773296,
+      "obscene": 0.05769170652411767,
+      "severe_toxic": 0.0057363468692363,
+      "threat": 0.003298008690487355,
+      "toxic": 0.09518897120885304
+    },
+    "pr_auc": {
+      "identity_hate": 0.011128825533777236,
+      "insult": 0.053565288067773296,
+      "obscene": 0.05769170652411767,
+      "severe_toxic": 0.0057363468692363,
+      "threat": 0.003298008690487355,
+      "toxic": 0.09518897120885304
+    },
+    "precision": {
+      "identity_hate": 0.0,
+      "insult": 0.053565288067773296,
+      "obscene": 0.05769170652411767,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 0.09518897120885304
+    },
+    "recall": {
+      "identity_hate": 0.0,
+      "insult": 1.0,
+      "obscene": 1.0,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 1.0
+    },
+    "roc_auc": {
+      "identity_hate": 0.5,
+      "insult": 0.5,
+      "obscene": 0.5,
+      "severe_toxic": 0.5,
+      "threat": 0.5,
+      "toxic": 0.5
+    },
+    "support": {
+      "identity_hate": 712,
+      "insult": 3427,
+      "obscene": 3691,
+      "severe_toxic": 367,
+      "threat": 211,
+      "toxic": 6090
+    },
+    "threshold": {
+      "identity_hate": 0.01,
+      "insult": 0.01,
+      "obscene": 0.01,
+      "severe_toxic": 0.01,
+      "threat": 0.01,
+      "toxic": 0.01
+    }
+  },
+  "model_name": "prior",
+  "n_test": 63978,
+  "n_train": 136776,
+  "summary": {
+    "hamming_loss": 0.4689528692154595,
+    "macro_f1": 0.06410080352590486,
+    "mean_column_auc": 0.5,
+    "mean_column_pr_auc": 0.037768191149040814,
+    "micro_f1": 0.12796465664238102,
+    "subset_accuracy": 0.03019788052142924,
+    "weighted_f1": 0.12482775224982427
+  },
+  "thresholds": [
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01
+  ]
+}

@@ -40,6 +40,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", default="experiment", help="tag merged into")
     parser.add_argument("--extra", required=True, help="tag whose models are added")
+    parser.add_argument(
+        "--backend",
+        choices=["file", "memory"],
+        default="file",
+        help="persistence layer to read and write the artifacts through",
+    )
     return parser.parse_args(argv)
 
 
@@ -47,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     """Entry point.  Returns a process exit code."""
     args = parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)-7s %(message)s")
-    artifacts = get_artifact_repository(Config(persistence_backend="file"))
+    artifacts = get_artifact_repository(Config(persistence_backend=args.backend))
 
     base_meta = artifacts.load(f"{args.base}_metadata")
     extra_meta = artifacts.load(f"{args.extra}_metadata")

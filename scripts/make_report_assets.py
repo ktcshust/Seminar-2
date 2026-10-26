@@ -267,6 +267,25 @@ def hierarchy_table(hierarchy: list[dict]) -> str:
     )
 
 
+def test_set_table(leaderboard: list[dict]) -> str:
+    """One row per model, scored once on Kaggle's official test set."""
+    rows = [
+        [
+            PRETTY_MODEL.get(entry["model"], escape(entry["model"])),
+            number(entry["mean_column_auc"]),
+            number(entry["mean_column_pr_auc"]),
+            number(entry["macro_f1"]),
+            number(entry["micro_f1"]),
+        ]
+        for entry in leaderboard
+    ]
+    return tabular(
+        "lcccc",
+        ["Model", "Mean col.\\ AUC", "PR-AUC", "Macro $F_1$", "Micro $F_1$"],
+        rows,
+    )
+
+
 def environment_table(metadata: dict) -> str:
     """The reproducibility subsection's software and hardware inventory."""
     rows = [
@@ -330,6 +349,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=["file", "memory"],
         default="file",
         help="persistence layer to read the artifacts from",
+    )
+    parser.add_argument(
+        "--test-tag",
+        default="test",
+        help="artifact prefix written by evaluate_test_set",
     )
     return parser.parse_args(argv)
 
@@ -419,6 +443,19 @@ def main(argv: list[str] | None = None) -> int:
     hierarchy = load("hierarchy")
     if hierarchy:
         write("tables/hierarchy.tex", hierarchy_table(hierarchy))
+
+    # Written by scripts/evaluate_test_set.py, under its own tag.
+    if artifacts.exists(f"{args.test_tag}_leaderboard"):
+        write(
+            "tables/test_set.tex",
+            test_set_table(artifacts.load(f"{args.test_tag}_leaderboard")),
+        )
+    else:
+        LOGGER.warning(
+            "No %s_leaderboard artifact; run scripts/evaluate_test_set.py to "
+            "add the official test-set table.",
+            args.test_tag,
+        )
 
     for path in written:
         LOGGER.info("wrote %s", path.relative_to(config.project_root))
