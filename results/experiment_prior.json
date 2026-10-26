@@ -1,0 +1,267 @@
+{
+  "fit_seconds": [
+    0.009853200055658817,
+    0.008879299974069,
+    0.008640199899673462,
+    0.01050450000911951,
+    0.00848909979686141
+  ],
+  "fold_metrics": [
+    {
+      "hamming_loss": 0.4706085103716237,
+      "macro_f1": 0.06159649167946329,
+      "mean_column_auc": 0.5,
+      "mean_column_pr_auc": 0.03666102650874224,
+      "micro_f1": 0.12308051614409996,
+      "subset_accuracy": 0.024033339600175473,
+      "weighted_f1": 0.12154663636034943
+    },
+    {
+      "hamming_loss": 0.4706042090970808,
+      "macro_f1": 0.0616041759293687,
+      "mean_column_auc": 0.5,
+      "mean_column_pr_auc": 0.03666510000522221,
+      "micro_f1": 0.12309518712414612,
+      "subset_accuracy": 0.024063919786934042,
+      "weighted_f1": 0.12155196571502462
+    },
+    {
+      "hamming_loss": 0.47059806563472667,
+      "macro_f1": 0.061605976795735005,
+      "mean_column_auc": 0.5,
+      "mean_column_pr_auc": 0.03666102650874224,
+      "micro_f1": 0.12309997859130807,
+      "subset_accuracy": 0.024566021181926426,
+      "weighted_f1": 0.12157281185833041
+    },
+    {
+      "hamming_loss": 0.4706189551085208,
+      "macro_f1": 0.061578373066463216,
+      "mean_column_auc": 0.5,
+      "mean_column_pr_auc": 0.036650581771845166,
+      "micro_f1": 0.12304398598676528,
+      "subset_accuracy": 0.023343986964968352,
+      "weighted_f1": 0.12150567280441128
+    },
+    {
+      "hamming_loss": 0.4706032880031752,
+      "macro_f1": 0.06159649167946329,
+      "mean_column_auc": 0.5,
+      "mean_column_pr_auc": 0.0366558041402937,
+      "micro_f1": 0.1230817138797793,
+      "subset_accuracy": 0.023061979068747258,
+      "weighted_f1": 0.12156395316279427
+    }
+  ],
+  "label_names": [
+    "toxic",
+    "severe_toxic",
+    "obscene",
+    "threat",
+    "insult",
+    "identity_hate"
+  ],
+  "label_summary": {
+    "f1": {
+      "identity_hate": 0.0,
+      "insult": 0.09408293859284719,
+      "obscene": 0.10057136023370963,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 0.17492351215403534
+    },
+    "positive_rate": {
+      "identity_hate": 0.00880485802696423,
+      "insult": 0.04936360605897895,
+      "obscene": 0.05294821737697046,
+      "severe_toxic": 0.009995550571535904,
+      "threat": 0.0029955316914835285,
+      "toxic": 0.09584448299588161
+    },
+    "pr_auc": {
+      "identity_hate": 0.00880485802696423,
+      "insult": 0.04936360605897895,
+      "obscene": 0.05294821737697046,
+      "severe_toxic": 0.009995550571535904,
+      "threat": 0.0029955316914835285,
+      "toxic": 0.09584448299588161
+    },
+    "precision": {
+      "identity_hate": 0.0,
+      "insult": 0.04936360605897895,
+      "obscene": 0.05294821737697046,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 0.09584448299588161
+    },
+    "recall": {
+      "identity_hate": 0.0,
+      "insult": 1.0,
+      "obscene": 1.0,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 1.0
+    },
+    "roc_auc": {
+      "identity_hate": 0.5,
+      "insult": 0.5,
+      "obscene": 0.5,
+      "severe_toxic": 0.5,
+      "threat": 0.5,
+      "toxic": 0.5
+    },
+    "support": {
+      "identity_hate": 281.0,
+      "insult": 1575.4,
+      "obscene": 1689.8,
+      "severe_toxic": 319.0,
+      "threat": 95.6,
+      "toxic": 3058.8
+    },
+    "threshold": {
+      "identity_hate": 0.01,
+      "insult": 0.01,
+      "obscene": 0.01,
+      "severe_toxic": 0.01,
+      "threat": 0.01,
+      "toxic": 0.01
+    }
+  },
+  "label_summary_at_half": {
+    "f1": {
+      "identity_hate": 0.0,
+      "insult": 0.0,
+      "obscene": 0.0,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 0.0
+    },
+    "positive_rate": {
+      "identity_hate": 0.00880485802696423,
+      "insult": 0.04936360605897895,
+      "obscene": 0.05294821737697046,
+      "severe_toxic": 0.009995550571535904,
+      "threat": 0.0029955316914835285,
+      "toxic": 0.09584448299588161
+    },
+    "pr_auc": {
+      "identity_hate": 0.00880485802696423,
+      "insult": 0.04936360605897895,
+      "obscene": 0.05294821737697046,
+      "severe_toxic": 0.009995550571535904,
+      "threat": 0.0029955316914835285,
+      "toxic": 0.09584448299588161
+    },
+    "precision": {
+      "identity_hate": 0.0,
+      "insult": 0.0,
+      "obscene": 0.0,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 0.0
+    },
+    "recall": {
+      "identity_hate": 0.0,
+      "insult": 0.0,
+      "obscene": 0.0,
+      "severe_toxic": 0.0,
+      "threat": 0.0,
+      "toxic": 0.0
+    },
+    "roc_auc": {
+      "identity_hate": 0.5,
+      "insult": 0.5,
+      "obscene": 0.5,
+      "severe_toxic": 0.5,
+      "threat": 0.5,
+      "toxic": 0.5
+    },
+    "support": {
+      "identity_hate": 281.0,
+      "insult": 1575.4,
+      "obscene": 1689.8,
+      "severe_toxic": 319.0,
+      "threat": 95.6,
+      "toxic": 3058.8
+    },
+    "threshold": {
+      "identity_hate": 0.5,
+      "insult": 0.5,
+      "obscene": 0.5,
+      "severe_toxic": 0.5,
+      "threat": 0.5,
+      "toxic": 0.5
+    }
+  },
+  "model_name": "prior",
+  "n_splits": 5,
+  "strategy": "iterative",
+  "summary": {
+    "fit_seconds_mean": 0.00927325994707644,
+    "hamming_loss_mean": 0.4706066056430254,
+    "hamming_loss_std": 7.83931115338354e-06,
+    "macro_f1_mean": 0.0615963018300987,
+    "macro_f1_std": 1.0921527485166592e-05,
+    "mean_column_auc_mean": 0.5,
+    "mean_column_auc_std": 0.0,
+    "mean_column_pr_auc_mean": 0.036658707786969114,
+    "mean_column_pr_auc_std": 5.614193649310991e-06,
+    "micro_f1_mean": 0.12308027634521974,
+    "micro_f1_std": 2.1963742594233067e-05,
+    "subset_accuracy_mean": 0.02381384932055031,
+    "subset_accuracy_std": 0.0006046803367881105,
+    "weighted_f1_mean": 0.121548207980182,
+    "weighted_f1_std": 2.5879979392026166e-05
+  },
+  "summary_at_half": {
+    "hamming_loss_mean": 0.036658707786969114,
+    "macro_f1_mean": 0.0,
+    "mean_column_auc_mean": 0.5,
+    "mean_column_pr_auc_mean": 0.036658707786969114,
+    "micro_f1_mean": 0.0,
+    "subset_accuracy_mean": 0.8983211223182828,
+    "weighted_f1_mean": 0.0
+  },
+  "thresholds": [
+    [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ],
+    [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ],
+    [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ],
+    [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ],
+    [
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01,
+      0.01
+    ]
+  ]
+}

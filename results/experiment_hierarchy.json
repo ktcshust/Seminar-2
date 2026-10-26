@@ -1,0 +1,32 @@
+[
+  {
+    "label": "severe_toxic",
+    "predicted_positive": 2503,
+    "violation_rate": 0.0015980823012385138,
+    "without_parent": 4
+  },
+  {
+    "label": "obscene",
+    "predicted_positive": 8929,
+    "violation_rate": 0.02598275282786426,
+    "without_parent": 232
+  },
+  {
+    "label": "threat",
+    "predicted_positive": 551,
+    "violation_rate": 0.06896551724137931,
+    "without_parent": 38
+  },
+  {
+    "label": "insult",
+    "predicted_positive": 7912,
+    "violation_rate": 0.012765419615773509,
+    "without_parent": 101
+  },
+  {
+    "label": "identity_hate",
+    "predicted_positive": 1542,
+    "violation_rate": 0.07263294422827497,
+    "without_parent": 112
+  }
+]
